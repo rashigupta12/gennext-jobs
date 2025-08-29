@@ -70,6 +70,9 @@ interface ExperienceEntry {
   duration: string;
   responsibilities: string;
 }
+interface ProfileFormData extends Partial<Resume> {
+  mobile?: string;
+}
 
 const ProfilePage = () => {
   const router = useRouter();
@@ -79,13 +82,14 @@ const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [resume, setResume] = useState<Resume | null>(null);
-  const [formData, setFormData] = useState<Partial<Resume>>({
-    resumeUrl: "",
-    experience: "",
-    skills: "",
-    education: "",
-    position: "",
-  });
+  const [formData, setFormData] = useState<ProfileFormData>({
+  resumeUrl: "",
+  experience: "",
+  skills: "",
+  education: "",
+  position: "",
+  mobile: "",
+});
 
   // Multiple education entries
   const [educationEntries, setEducationEntries] = useState<EducationEntry[]>([
@@ -239,12 +243,13 @@ const ProfilePage = () => {
 
           setResume(cleanedResume);
           setFormData({
-            resumeUrl: cleanedResume.resumeUrl || "",
-            experience: cleanedResume.experience || "",
-            skills: cleanedResume.skills || "",
-            education: cleanedResume.education || "",
-            position: cleanedResume.position || "",
-          });
+  resumeUrl: cleanedResume.resumeUrl || "",
+  experience: cleanedResume.experience || "",
+  skills: cleanedResume.skills || "",
+  education: cleanedResume.education || "",
+  position: cleanedResume.position || "",
+  mobile: userData.data.mobile || "", // Add this
+});
 
           // Parse education and experience data
           if (cleanedResume.education) {
@@ -264,6 +269,7 @@ const ProfilePage = () => {
             skills: "",
             education: "",
             position: "",
+            
           });
         }
       } else {
@@ -321,6 +327,32 @@ const ProfilePage = () => {
     }
   };
 
+  const updateMobileNumber = async (newMobile: string) => {
+  try {
+    const response = await fetch(`/api/users`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: user?.id,
+        mobile: newMobile,
+      }),
+    });
+
+    const result = await response.json();
+    if (response.ok) {
+      setUser(prev => prev ? { ...prev, mobile: newMobile } : null);
+      return true;
+    } else {
+      throw new Error(result.message || "Failed to update mobile");
+    }
+  } catch (error) {
+    console.error("Error updating mobile:", error);
+    return false;
+  }
+};
+
   // Handle experience entry change
   const handleExperienceChange = (index: number, field: keyof ExperienceEntry, value: string) => {
     const updatedEntries = [...experienceEntries];
@@ -331,6 +363,10 @@ const ProfilePage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    // Add this before the resume submission logic
+if (formData.mobile !== user?.mobile) {
+  await updateMobileNumber(formData.mobile || "");
+}
 
     try {
       const submitData = new FormData();
@@ -434,12 +470,19 @@ const ProfilePage = () => {
                         </h3>
                         <div className="space-y-4">
                           <div>
-                            <Label className="text-sm font-medium text-gray-700">Mobile Number</Label>
-                            <Input 
-                              value={user?.mobile || "Not provided"} 
-                              className="bg-gray-100 mt-1"
-                            />
-                          </div>
+  <Label htmlFor="mobile" className="text-sm font-medium text-gray-700">
+    Mobile Number
+  </Label>
+  <Input
+    id="mobile"
+    name="mobile"
+    value={formData.mobile}
+    onChange={handleInputChange}
+    placeholder="Enter your mobile number"
+    maxLength={10}
+    className="mt-1"
+  />
+</div>
                         </div>
                       </div>
 
@@ -520,21 +563,26 @@ const ProfilePage = () => {
                                   <Input
                                     value={entry.degree}
                                     onChange={(e) => handleEducationChange(index, 'degree', e.target.value)}
-                                    placeholder="e.g., B.Tech Computer Science, MBA, etc."
+                                    placeholder="B.Tech (cse)"
                                     className="mt-1 capitalize"
                                   />
                                 </div>
                                 <div>
-                                  <Label className="text-sm font-medium text-gray-700">
-                                    Passing Year/Batch *
-                                  </Label>
-                                  <Input
-                                    value={entry.batch}
-                                    onChange={(e) => handleEducationChange(index, 'batch', e.target.value)}
-                                    placeholder="e.g., 2020-2024 or 2024"
-                                    className="mt-1 capitalize"
-                                  />
-                                </div>
+  <Label className="text-sm font-medium text-gray-700">
+    Passing Year *
+  </Label>
+  <Input
+    type="number"
+    value={entry.batch}
+    onChange={(e) => {
+      const value = e.target.value.slice(0, 4); // only 4 digits allowed
+      handleEducationChange(index, "batch", value); // ✅ use trimmed value
+    }}
+    placeholder="2024"
+    className="mt-1 capitalize"
+  />
+</div>
+
                               </div>
                             </div>
                           ))}

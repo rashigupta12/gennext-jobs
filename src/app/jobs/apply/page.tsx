@@ -3,14 +3,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
 declare module "html2pdf.js";
 
 import Footer from "@/components/common/Footer";
 import Navbar from "@/components/common/Navbar";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -20,68 +28,55 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-import { useForm } from "react-hook-form";
-import { set, z } from "zod";
-import type { SubmitHandler } from "react-hook-form";
+import { UploadDropzone } from "@/utils/uploadthing";
 import {
-  Loader2,
-  Upload,
-  Info,
-  CheckCircle,
-  FileText,
   AlertCircle,
-  Download,
-  Plus,
-  X,
-  GraduationCap,
   Briefcase,
+  CheckCircle,
   Code,
-  User,
-  Phone,
+  Download,
+  FileText,
+  GraduationCap,
+  Info,
+  Loader2,
   Mail,
-  Building,
+  Plus,
+  Upload,
+  User,
+  X,
 } from "lucide-react";
-import { useSession, signIn } from "next-auth/react";
-import { UploadButton, UploadDropzone } from "@/utils/uploadthing";
+import { signIn, useSession } from "next-auth/react";
+import type { SubmitHandler } from "react-hook-form";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
-// Form validation schema
+// Form validation schema - updated to make fields required properly
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
   mobile: z.string().min(10, "Please enter a valid phone number"),
-  education: z.string().min(1, "Please provide your education details"),
-  experience: z.string().optional(),
+  education: z.string().min(1, "Education is required"),
+  experience: z.string().optional(), // Make optional
   skills: z.string().min(1, "Please list your relevant skills"),
-  resume: z.union([
-    z.instanceof(File),
-    z.string().url("Please provide a valid URL"),
-  ]),
+  resume: z
+    .union([
+      z.instanceof(File),
+      z.string().url("Please provide a valid URL"),
+      z.string().length(0),
+    ])
+    .optional(), // Make optional
   coverLetter: z.string().optional(),
 });
 
@@ -161,6 +156,8 @@ const JobApplicationForm: React.FC = () => {
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const applicationRef = useRef<HTMLDivElement>(null);
   const [html2pdfModule, setHtml2pdfModule] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [resumeUploaded, setResumeUploaded] = useState(false);
 
   // Multiple education and experience entries
   const [educationEntries, setEducationEntries] = useState<EducationEntry[]>([
@@ -173,16 +170,29 @@ const JobApplicationForm: React.FC = () => {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: userData?.name || "",
-      email: userData?.email || "",
-      mobile: userData?.mobile || "",
-      education: resumeData?.education || "",
-      experience: resumeData?.experience || "",
+      name: "",
+      email: "",
+      mobile: "",
+      education: "",
+      experience: "",
       resume: undefined,
       coverLetter: "",
+      skills: "",
     },
   });
 
+
+  // Add this useEffect to sync educationEntries with form field
+useEffect(() => {
+  const formattedEducation = formatEducationForDB(educationEntries);
+  form.setValue('education', formattedEducation, { shouldValidate: true });
+}, [educationEntries, form]);
+
+// Add this useEffect to sync experienceEntries with form field  
+useEffect(() => {
+  const formattedExperience = formatExperienceForDB(experienceEntries);
+  form.setValue('experience', formattedExperience, { shouldValidate: true });
+}, [experienceEntries, form]);
   // Parse functions (same as profile page)
   const parseEducationData = (educationString: string): EducationEntry[] => {
     if (!educationString) return [{ college: "", degree: "", batch: "" }];
@@ -329,6 +339,10 @@ const JobApplicationForm: React.FC = () => {
             ),
           ]);
 
+          if (!userRes.ok || !resumeRes.ok || !applicationRes.ok) {
+            throw new Error("Failed to fetch data from server");
+          }
+
           const userData = await userRes.json();
           const resumeData = await resumeRes.json();
           const applicationData = await applicationRes.json();
@@ -344,7 +358,7 @@ const JobApplicationForm: React.FC = () => {
           setuserId(currentUserId);
 
           // Find resume for the current user
-          const userResume = resumeData.data.find(
+          const userResume = resumeData.data?.find(
             (resume: ResumeData) => resume.userId === currentUserId
           );
 
@@ -360,6 +374,7 @@ const JobApplicationForm: React.FC = () => {
               setFileName(
                 userResume.resumeUrl.split("/").pop() || "Uploaded Resume"
               );
+              setResumeUploaded(true);
             }
 
             // Parse education and experience data
@@ -392,13 +407,14 @@ const JobApplicationForm: React.FC = () => {
           } else {
             setResumeUrl(null);
             setFileName("");
+            setResumeUploaded(false);
           }
 
           // Set user data and reset form with values
           if (userData?.data) {
             setUserData(userData.data);
 
-            await form.reset({
+            form.reset({
               name: userData.data.name || "",
               email: userData.data.email || "",
               mobile: userData.data.mobile || "",
@@ -414,6 +430,7 @@ const JobApplicationForm: React.FC = () => {
           setFetchError(
             "Failed to load your profile data. Please try again later."
           );
+          toast.error("Failed loadyour profile data");
         } finally {
           setIsLoading(false);
         }
@@ -426,10 +443,30 @@ const JobApplicationForm: React.FC = () => {
   }, [session?.user?.id, jobId, id, status]);
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
-    if (hasApplied) {
-      return; // Prevent submission if already applied
+    console.log("Form submission started with data:", data);
+
+    const isValid = await form.trigger();
+    if (!isValid) {
+      console.log("Form validation failed");
+      toast.error("Please fill in all required fields correctly");
+      return;
     }
 
+    if (hasApplied) {
+      toast.error("You have already Applied to this job");
+      return;
+    }
+
+    // Make education and experience optional
+    const formattedEducation = formatEducationForDB(educationEntries);
+    const formattedExperience = formatExperienceForDB(experienceEntries);
+
+    if (!formattedEducation) {
+      toast.error("Please fill in at least one education entry.");
+      return;
+    }
+
+    console.log("All validations passed, proceeding with submission");
     setIsSubmitting(true);
     setFetchError(null);
 
@@ -437,10 +474,6 @@ const JobApplicationForm: React.FC = () => {
       // Create form data for resume submission
       const formData = new FormData();
       formData.append("userId", userId);
-
-      // Format and append education and experience data
-      const formattedEducation = formatEducationForDB(educationEntries);
-      const formattedExperience = formatExperienceForDB(experienceEntries);
 
       if (formattedEducation) formData.append("education", formattedEducation);
       if (formattedExperience)
@@ -470,22 +503,21 @@ const JobApplicationForm: React.FC = () => {
           method: "POST",
           body: formData,
         });
-
-        const result = await resumeResponse.json();
-
-        if (!resumeResponse.ok) {
-          throw new Error(result.error || "Failed to create resume");
-        }
-
-        // Store the new resume ID in variable for immediate use
-        currentResumeId = result.data?.id;
-        setresumeId(currentResumeId);
       }
 
       if (!resumeResponse.ok) {
+        const errorData = await resumeResponse.json();
         throw new Error(
-          `Error: ${resumeResponse.status} ${resumeResponse.statusText}`
+          errorData.error || `Resume API error: ${resumeResponse.status}`
         );
+      }
+
+      const resumeResult = await resumeResponse.json();
+
+      // Store the resume ID for application
+      if (!currentResumeId && resumeResult.data?.id) {
+        currentResumeId = resumeResult.data.id;
+        setresumeId(currentResumeId);
       }
 
       // After resume handling, submit the job application
@@ -494,31 +526,52 @@ const JobApplicationForm: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
-          jobId,
-          resumeId: currentResumeId || resumeId,
+          jobId: id || jobId,
+          resumeId: currentResumeId,
           coverLetter: data.coverLetter || "",
         }),
       });
 
-      const applicationResult = await applicationResponse.json();
-
       if (!applicationResponse.ok) {
-        throw new Error(applicationResult.error || "Failed to apply for job");
+        const errorData = await applicationResponse.json();
+        throw new Error(
+          errorData.error ||
+            `Application API error: ${applicationResponse.status}`
+        );
       }
+
+      const applicationResult = await applicationResponse.json();
 
       // Update UI state for success
       setSubmitSuccess(true);
       setApplicationData(applicationResult.data);
-      router.push(`/dashboard/user`);
+      setHasApplied(true);
 
+      // toast({
+      //   title: "Application Submitted",
+      //   description: "Your job application has been submitted successfully!",
+      //   variant: "default",
+      // });
+      toast.success("Your job application has been submitted successfully!");
+
+      // Redirect to dashboard after a short delay
       setTimeout(() => {
-        setHasApplied(true);
-      }, 20000);
+        router.push(`/dashboard/user`);
+      }, 2000);
     } catch (error) {
       console.error("Error submitting application:", error);
-      setFetchError(
-        "Failed to submit your application. Please try again later."
-      );
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to submit your application. Please try again later.";
+      setFetchError(errorMessage);
+
+      // toast({
+      //   title: "Submission Failed",
+      //   description: errorMessage,
+      //   variant: "destructive",
+      // });
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -533,6 +586,12 @@ const JobApplicationForm: React.FC = () => {
   const downloadApplicationPDF = () => {
     if (!applicationRef.current || !html2pdfModule) {
       console.error("Application reference or html2pdf module not available");
+      // toast({
+      //   title: "Error",
+      //   description: "Unable to generate PDF. Please try again later.",
+      //   variant: "destructive",
+      // });
+      toast.error("Unable to generate PDF. Please try again later.");
       return;
     }
 
@@ -550,18 +609,43 @@ const JobApplicationForm: React.FC = () => {
         .from(applicationRef.current)
         .set(opt)
         .save()
-        .then(() => console.log("PDF generated successfully"))
-        .catch((err: unknown) =>
-          console.error("Error in PDF generation:", err)
-        );
+        .then(() => {
+          console.log("PDF generated successfully");
+          // toast({
+          //   title: "PDF Downloaded",
+          //   description: "Your application PDF has been downloaded successfully.",
+          // });
+        })
+        .catch((err: unknown) => {
+          console.error("Error in PDF generation:", err);
+          // toast({
+          //   title: "PDF Error",
+          //   description: "Failed to generate PDF. Please try again.",
+          //   variant: "destructive",
+          // });
+        });
     } catch (error) {
       console.error("Error in PDF generation process:", error);
+      // toast({
+      //   title: "PDF Error",
+      //   description: "Failed to generate PDF. Please try again.",
+      //   variant: "destructive",
+      // });
     }
   };
 
   // Opens the PDF preview dialog
   const handleOpenPdfDialog = () => {
     setPdfDialogOpen(true);
+  };
+
+  // Parse skills for display
+  const parseSkillsForDisplay = (skillsString: string): string[] => {
+    if (!skillsString) return [];
+    return skillsString
+      .split(/[,\n]/)
+      .map((skill) => skill.trim())
+      .filter((skill) => skill.length > 0);
   };
 
   if (isLoading) {
@@ -599,17 +683,6 @@ const JobApplicationForm: React.FC = () => {
           </div>
 
           <Card className="shadow-xl bg-white/95 backdrop-blur-sm">
-            {/* <CardHeader className="bg-gradient-to-r from-gennext to-gennext-dark text-white rounded-t-lg">
-              <div className="text-center">
-                <CardTitle className="text-2xl font-bold text-white mb-2">
-                  Apply for this position
-                </CardTitle>
-                <CardDescription className="text-blue-100 max-w-xl mx-auto">
-                  Submit your application to join our team and take the next step in your career journey
-                </CardDescription>
-              </div>
-            </CardHeader> */}
-
             {/* Status Messages */}
             {status === "unauthenticated" && (
               <div className="bg-blue-50 p-4 border-b border-blue-100">
@@ -631,53 +704,56 @@ const JobApplicationForm: React.FC = () => {
               </div>
             )}
 
-            {/* {fetchError && (
-              <div className="bg-yellow-50 p-4 border-b border-yellow-100">
-                <div className="flex items-center max-w-3xl mx-auto">
-                  <Info className="h-5 w-5 text-yellow-600 mr-3 flex-shrink-0" />
-                  <p className="text-yellow-800 text-sm">{fetchError}</p>
-                </div>
+            {/* Error Display */}
+            {fetchError && (
+              <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-2">
+                <Alert className="bg-red-50 border border-red-200">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <AlertTitle className="text-red-800">Error</AlertTitle>
+                  <AlertDescription className="text-red-700">
+                    {fetchError}
+                  </AlertDescription>
+                </Alert>
               </div>
-            )} */}
+            )}
 
             {/* Already Applied Alert */}
-           {hasApplied && (
-  <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-2">
-    <Alert className="bg-blue-50 border border-blue-200">
-      <div className="flex items-start">
-        <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 mr-3" />
-        <div className="flex-1">
-          <AlertTitle className="text-blue-800 font-medium mb-1 text-sm sm:text-base">
-            Application Already Submitted
-          </AlertTitle>
-          <AlertDescription className="text-blue-700 text-sm">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                You have already applied for this position on{" "}
-                {new Date(
-                  applicationData?.appliedAt || ""
-                ).toLocaleDateString()}
-                . Your application is currently{" "}
-                <span className="font-medium">
-                  {applicationData?.status || "under review"}
-                </span>
-                .
+            {hasApplied && (
+              <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-2">
+                <Alert className="bg-blue-50 border border-blue-200">
+                  <div className="flex items-start">
+                    <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 mr-3" />
+                    <div className="flex-1">
+                      <AlertTitle className="text-blue-800 font-medium mb-1 text-sm sm:text-base">
+                        Application Already Submitted
+                      </AlertTitle>
+                      <AlertDescription className="text-blue-700 text-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            You have already applied for this position on{" "}
+                            {new Date(
+                              applicationData?.appliedAt || ""
+                            ).toLocaleDateString()}
+                            . Your application is currently{" "}
+                            <span className="font-medium">
+                              {applicationData?.status || "under review"}
+                            </span>
+                            .
+                          </div>
+                          <Button
+                            onClick={handleOpenPdfDialog}
+                            className="bg-blue-700 hover:bg-blue-800 text-white text-sm flex items-center"
+                            size="sm"
+                          >
+                            <Download className="h-4 w-4 mr-2" /> Download
+                          </Button>
+                        </div>
+                      </AlertDescription>
+                    </div>
+                  </div>
+                </Alert>
               </div>
-              <Button
-                onClick={handleOpenPdfDialog}
-                className="bg-blue-700 hover:bg-blue-800 text-white text-sm flex items-center"
-                size="sm"
-              >
-                <Download className="h-4 w-4 mr-2" /> Download
-              </Button>
-            </div>
-          </AlertDescription>
-        </div>
-      </div>
-    </Alert>
-  </div>
-)}
-
+            )}
 
             {/* Success Message */}
             {submitSuccess && !hasApplied && (
@@ -884,18 +960,20 @@ const JobApplicationForm: React.FC = () => {
                                 </div>
                                 <div>
                                   <Label className="text-sm font-medium text-gray-700">
-                                    Passing Year/Batch *
+                                    Passing Year *
                                   </Label>
                                   <Input
+                                    type="number"
                                     value={entry.batch}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
+                                      const value = e.target.value.slice(0, 4); // only 4 digits allowed
                                       handleEducationChange(
                                         index,
                                         "batch",
-                                        e.target.value
-                                      )
-                                    }
-                                    placeholder="e.g., 2020-2024 "
+                                        value
+                                      );
+                                    }}
+                                    placeholder="e.g., 2024"
                                     className="mt-1 text-sm sm:text-base"
                                     disabled={hasApplied}
                                   />
@@ -907,7 +985,7 @@ const JobApplicationForm: React.FC = () => {
                       </div>
 
                       {/* Multiple Experience Entries */}
-                      <div className="bg-gray-50 p-4 sm:p-4py-4 rounded-lg">
+                      <div className="bg-gray-50 p-4 sm:p-4 py-4 rounded-lg">
                         <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
                           <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2 text-gray-800">
                             <Briefcase className="h-5 w-5 text-blue-600" />
@@ -1037,12 +1115,12 @@ const JobApplicationForm: React.FC = () => {
                           name="skills"
                           render={({ field }) => (
                             <FormItem>
-                              {/* <FormLabel className="text-sm font-medium text-gray-700">
+                              <FormLabel className="text-sm font-medium text-gray-700">
                                 Technical Skills *
-                              </FormLabel> */}
+                              </FormLabel>
                               <FormControl>
                                 <Textarea
-                                  className="mt-1 min-h-[120px] text-sm sm:text-base"
+                                  className="mt-1 min-h-[50px] text-sm sm:text-base"
                                   placeholder="List your relevant skills (e.g., JavaScript, React, Node.js, Python, etc.)"
                                   {...field}
                                   disabled={hasApplied}
@@ -1051,6 +1129,28 @@ const JobApplicationForm: React.FC = () => {
                               <FormDescription className="text-gray-600 text-xs sm:text-sm">
                                 Separate skills with commas or line breaks
                               </FormDescription>
+
+                              {/* Skills Preview */}
+                              {field.value &&
+                                parseSkillsForDisplay(field.value).length >
+                                  0 && (
+                                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                                    {/* <p className="text-sm font-medium text-gray-700 mb-2">Skills Preview:</p> */}
+                                    <div className="flex flex-wrap gap-2">
+                                      {parseSkillsForDisplay(field.value).map(
+                                        (skill, index) => (
+                                          <span
+                                            key={index}
+                                            className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium capitalize"
+                                          >
+                                            {skill}
+                                          </span>
+                                        )
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
                               <FormMessage />
                             </FormItem>
                           )}
@@ -1062,7 +1162,7 @@ const JobApplicationForm: React.FC = () => {
                         <div className="flex items-center justify-between mb-4 sm:mb-6">
                           <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2 text-gray-800">
                             <FileText className="h-5 w-5 text-blue-600" />
-                            Resume/CV
+                            Resume/CV(optional)
                           </h3>
                           {resumeUrl && (
                             <Button
@@ -1077,23 +1177,20 @@ const JobApplicationForm: React.FC = () => {
                           )}
                         </div>
 
-                        {/* {resumeUrl ? (
-    <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
-      <p className="text-sm text-gray-600 mb-2">Your resume is ready for this application</p>
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <CheckCircle className="h-4 w-4 text-green-500" />
-        Resume attached to your profile
-      </div>
-    </div>
-  ) : (
-    <div className="text-center p-4 sm:p-6 border border-gray-300 border-dashed rounded-lg">
-      <Upload className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
-      <p className="text-gray-600 text-sm sm:text-base">No resume found in your profile</p>
-      <p className="text-xs sm:text-sm text-gray-500 mt-1">
-        Please update your profile with a resume before applying
-      </p>
-    </div>
-  )} */}
+                        {/* Resume Status Display */}
+                        {resumeUploaded && resumeUrl && (
+                          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center">
+                            <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-green-800">
+                                Resume Uploaded Successfully
+                              </p>
+                              <p className="text-xs text-green-600">
+                                {fileName}
+                              </p>
+                            </div>
+                          </div>
+                        )}
 
                         {!hasApplied && (
                           <div className="mt-4">
@@ -1103,34 +1200,73 @@ const JobApplicationForm: React.FC = () => {
                               render={({ field: { onChange, ...field } }) => (
                                 <FormItem>
                                   <FormLabel className="text-sm font-medium text-gray-700">
-                                    Update Resume (Optional)
+                                    {resumeUploaded
+                                      ? "Update Resume"
+                                      : "Upload Resume (Optional)"}
                                   </FormLabel>
                                   <FormControl>
                                     <div className="mt-2">
-                                      <UploadDropzone
-                                        endpoint="docUploader"
-                                        onClientUploadComplete={(res) => {
-                                          if (res && res.length > 0) {
-                                            const fileUrl =
-                                              res[0].serverData.fileUrl;
-                                            setResumeUrl(fileUrl);
-                                            setFileName(fileUrl);
-                                            onChange(fileUrl);
-                                          }
-                                        }}
-                                        onUploadError={(error: Error) => {
-                                          console.error("Upload error:", error);
-                                          setFetchError(
-                                            "Failed to upload resume. Please try again."
-                                          );
-                                        }}
-                                        className="ut-button:bg-blue-600 ut-button:hover:bg-blue-700"
-                                      />
+                                      {isUploading ? (
+                                        <div className="flex items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                                          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                                          <span className="ml-2 text-gray-600">
+                                            Uploading...
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <UploadDropzone
+                                          endpoint="docUploader"
+                                          onBeforeUploadBegin={(files) => {
+                                            setIsUploading(true);
+                                            return files;
+                                          }}
+                                          onClientUploadComplete={(res) => {
+                                            if (res && res.length > 0) {
+                                              const fileUrl =
+                                                res[0].serverData.fileUrl;
+                                              const uploadedFileName =
+                                                res[0].name;
+                                              setResumeUrl(fileUrl);
+                                              setFileName(uploadedFileName);
+                                              setResumeUploaded(true);
+                                              onChange(fileUrl);
+
+                                              // toast({
+                                              //   title: "Resume Uploaded",
+                                              //   description: `${uploadedFileName} has been uploaded successfully.`,
+                                              // });
+                                              toast.success("Resume uploaded");
+                                            }
+                                            setIsUploading(false);
+                                          }}
+                                          onUploadError={(error: Error) => {
+                                            console.error(
+                                              "Upload error:",
+                                              error
+                                            );
+                                            setFetchError(
+                                              "Failed to upload resume. Please try again."
+                                            );
+                                            setIsUploading(false);
+
+                                            // toast({
+                                            //   title: "Upload Failed",
+                                            //   description: "Failed to upload resume. Please try again.",
+                                            //   variant: "destructive",
+                                            // });
+                                            toast.error(
+                                              "Failed to Upload resume. Please Try agaain"
+                                            );
+                                          }}
+                                          className="ut-button:bg-blue-600 ut-button:hover:bg-blue-700"
+                                        />
+                                      )}
                                     </div>
                                   </FormControl>
                                   <FormDescription className="text-gray-600">
-                                    Upload a new resume to replace your current
-                                    one (PDF preferred)
+                                    {resumeUploaded
+                                      ? "Upload a new file to replace your current resume (PDF preferred)"
+                                      : "Upload your resume (PDF preferred)"}
                                   </FormDescription>
                                   <FormMessage />
                                 </FormItem>
@@ -1144,14 +1280,16 @@ const JobApplicationForm: React.FC = () => {
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <h3 className="text-xl font-semibold mb-6 flex items-center gap-2 text-gray-800">
                           <Mail className="h-5 w-5 text-blue-600" />
-                          Cover Letter
+                          Cover Letter (Optional)
                         </h3>
                         <FormField
                           control={form.control}
                           name="coverLetter"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-sm font-medium text-gray-700"></FormLabel>
+                              <FormLabel className="text-sm font-medium text-gray-700">
+                                Cover Letter
+                              </FormLabel>
                               <FormControl>
                                 <Textarea
                                   className="mt-1 min-h-[150px]"
@@ -1161,7 +1299,7 @@ const JobApplicationForm: React.FC = () => {
                                 />
                               </FormControl>
                               <FormDescription className="text-gray-600">
-                                Tell us why you&apos;re the perfect fit for this role
+                                Tell us why you &apos;re the perfect fit for this role
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
@@ -1177,8 +1315,8 @@ const JobApplicationForm: React.FC = () => {
                       <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Button
                           type="submit"
-                          disabled={isSubmitting || !resumeUrl}
-                          className="bg-gradient-to-r from-gennext to-gennext-dark hover:from-blue-700 hover:to-purple-800 text-white px-8 py-3 text-lg font-semibold min-w-[200px]"
+                          disabled={isSubmitting || isUploading}
+                          className="bg-gradient-to-r from-gennext to-gennext-dark hover:from-blue-700 hover:to-purple-800 text-white px-8 py-3 text-lg font-semibold min-w-[200px] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isSubmitting ? (
                             <>
@@ -1214,15 +1352,19 @@ const JobApplicationForm: React.FC = () => {
                         </TooltipProvider>
                       </div>
 
-                      {!resumeUrl && (
-                        <div className="mt-4 text-center">
-                          <p className="text-sm text-red-600">
-                            <AlertCircle className="inline h-4 w-4 mr-1" />
-                            Please ensure you have a resume uploaded to submit
-                            your application
-                          </p>
-                        </div>
-                      )}
+                      {/* Validation Messages */}
+
+                      {/* Updated validation messages */}
+                      <div className="mt-4 space-y-2">
+                        {isUploading && (
+                          <div className="text-center">
+                            <p className="text-sm text-blue-600 flex items-center justify-center">
+                              <Loader2 className="inline h-4 w-4 mr-1 animate-spin" />
+                              Please wait while your resume is uploading...
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </form>
@@ -1326,9 +1468,18 @@ const JobApplicationForm: React.FC = () => {
                   <Code className="h-5 w-5 text-blue-600" />
                   Skills
                 </h2>
-                <p className="text-gray-700 whitespace-pre-wrap">
-                  {form.getValues("skills")}
-                </p>
+                <div className="flex flex-wrap gap-2">
+                  {parseSkillsForDisplay(form.getValues("skills")).map(
+                    (skill, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                      >
+                        {skill}
+                      </span>
+                    )
+                  )}
+                </div>
               </div>
 
               {/* Cover Letter */}

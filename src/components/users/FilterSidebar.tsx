@@ -1,25 +1,18 @@
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
-  PopoverTrigger,
   PopoverContent,
+  PopoverTrigger,
 } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Filters, ApplicationStatus } from "@/types";
+import { ApplicationStatus, Filters } from "@/types";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
 import { useState } from "react";
 
 interface MergedSidebarProps {
@@ -39,16 +32,16 @@ interface MergedSidebarProps {
 
 const FilterContent = ({
   filters,
-  statusOptions = [],
+  // statusOptions = [],
   locationOptions = [],
   employmentTypeOptions = [],
   loading,
   updateSearchFilter,
-  updateStatusFilter,
+  // updateStatusFilter,
   updateLocationFilter,
   updateEmploymentTypeFilter,
   updateDateFilter,
-  onFilterChange,
+  // onFilterChange,
   onResetFilters,
 }: MergedSidebarProps) => {
   const [showAllLocations, setShowAllLocations] = useState(false);
@@ -69,7 +62,7 @@ const FilterContent = ({
         </div>
 
         {/* Status Filter - Most relevant for applications */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <h3 className="text-sm font-medium mb-3">Status</h3>
           {loading ? (
             <div className="space-y-2">
@@ -102,7 +95,7 @@ const FilterContent = ({
               No statuses available
             </p>
           )}
-        </div>
+        </div> */}
 
         <Separator className="my-6" />
 
@@ -132,7 +125,7 @@ const FilterContent = ({
                       />
                       <Label 
                         htmlFor={`location-${location}`}
-                        className="text-sm cursor-pointer flex-1 truncate"
+                        className="text-sm cursor-pointer flex-1 truncate capitalize"
                         title={location}
                       >
                         {location}
@@ -198,7 +191,7 @@ const FilterContent = ({
 
         {/* Date Filters */}
         <div className="mb-6">
-          <h3 className="text-sm font-medium mb-3">Applied Date Range</h3>
+          <h3 className="text-sm font-medium mb-3">Date Range</h3>
           <div className="space-y-3">
             <div>
               <Label htmlFor="date-from" className="text-xs text-muted-foreground mb-2 block">
@@ -266,7 +259,7 @@ const FilterContent = ({
         </div>
 
         {/* Salary Range Filter */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <h3 className="text-sm font-medium mb-3">Salary Range</h3>
           <Select
             value={filters.salaryRange || "0"}
@@ -285,7 +278,7 @@ const FilterContent = ({
               <SelectItem value="200000+">$200,000+</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        </div> */}
 
         <Separator className="my-6" />
 
