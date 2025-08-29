@@ -1,0 +1,111 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1740045834915,
+      "tag": "0000_classy_valeria_richards",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1740051907719,
+      "tag": "0001_perpetual_diamondback",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1740214184158,
+      "tag": "0002_fancy_bill_hollister",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1740221148800,
+      "tag": "0003_third_dreadnoughts",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1740634582694,
+      "tag": "0004_typical_nick_fury",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1740634698295,
+      "tag": "0005_fantastic_ted_forrester",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1740983894544,
+      "tag": "0006_petite_cerise",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1741246530753,
+      "tag": "0007_minor_bloodscream",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1742446739119,
+      "tag": "0008_fixed_the_anarchist",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1742466314923,
+      "tag": "0009_wealthy_gorilla_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1742481418863,
+      "tag": "0010_windy_talisman",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1749446386028,
+      "tag": "0011_cuddly_alex_wilder",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1749532412004,
+      "tag": "0012_unique_johnny_blaze",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1756198862868,
+      "tag": "0013_mute_vampiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1756366567398,
+      "tag": "0014_yummy_crystal",
+      "breakpoints": true
+    }
+  ]
+}

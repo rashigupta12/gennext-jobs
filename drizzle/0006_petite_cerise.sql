@@ -1,0 +1,1 @@
+ALTER TABLE "job_listings" ALTER COLUMN "expires_at" SET DATA TYPE text;
