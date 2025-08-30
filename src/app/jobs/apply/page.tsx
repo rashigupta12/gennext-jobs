@@ -442,6 +442,8 @@ useEffect(() => {
     fetchData();
   }, [session?.user?.id, jobId, id, status]);
 
+
+
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     console.log("Form submission started with data:", data);
 
@@ -547,17 +549,11 @@ useEffect(() => {
       setApplicationData(applicationResult.data);
       setHasApplied(true);
 
-      // toast({
-      //   title: "Application Submitted",
-      //   description: "Your job application has been submitted successfully!",
-      //   variant: "default",
-      // });
+
       toast.success("Your job application has been submitted successfully!");
 
-      // Redirect to dashboard after a short delay
-      setTimeout(() => {
+    
         router.push(`/dashboard/user`);
-      }, 2000);
     } catch (error) {
       console.error("Error submitting application:", error);
       const errorMessage =
@@ -674,12 +670,7 @@ useEffect(() => {
         <div className="container mx-auto px-4">
           {/* Header Section */}
           <div className="mb-1 text-center">
-            <h1 className="text-xl font-bold text-gray-800">{jobTitle}</h1>
-            <div className="mt-2 inline-flex items-center px-3 py-1  ">
-              <span className="text-blue-700 text-sm font-medium">
-                Reference: {jobId}
-              </span>
-            </div>
+            <h1 className="text-xl font-bold text-gray-800 capitalize">{jobTitle}</h1>
           </div>
 
           <Card className="shadow-xl bg-white/95 backdrop-blur-sm">
@@ -958,26 +949,30 @@ useEffect(() => {
                                     disabled={hasApplied}
                                   />
                                 </div>
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-700">
-                                    Passing Year *
-                                  </Label>
-                                  <Input
-                                    type="number"
-                                    value={entry.batch}
-                                    onChange={(e) => {
-                                      const value = e.target.value.slice(0, 4); // only 4 digits allowed
-                                      handleEducationChange(
-                                        index,
-                                        "batch",
-                                        value
-                                      );
-                                    }}
-                                    placeholder="e.g., 2024"
-                                    className="mt-1 text-sm sm:text-base"
-                                    disabled={hasApplied}
-                                  />
-                                </div>
+                               <div>
+  <Label className="text-sm font-medium text-gray-700">
+    Passing Year *
+  </Label>
+  <Input
+    type="text" // use text so we can fully control validation
+    value={entry.batch}
+    onChange={(e) => {
+      const value = e.target.value;
+
+      // Allow only digits
+      if (/^\d{0,4}$/.test(value)) {
+        // Optional: validate realistic year range (1900–2099)
+        if (value === "" || (parseInt(value) >= 1900 && parseInt(value) <= 2099)) {
+          handleEducationChange(index, "batch", value);
+        }
+      }
+    }}
+    placeholder="e.g., 2024"
+    className="mt-1 text-sm sm:text-base"
+    disabled={hasApplied}
+  />
+</div>
+
                               </div>
                             </div>
                           ))}

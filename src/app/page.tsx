@@ -127,7 +127,7 @@ export default function Home() {
         href="/auth/register"
         className="md:hidden font-semibold  text-sm "
       >
-        Job seeker? <span className="text-gennext-DEFAULT underline"> Click here</span>
+        Job seeker? <span className="text-gennext underline"> Click here</span>
       </Link>
     </div>
         </div>

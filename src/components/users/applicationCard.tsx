@@ -27,6 +27,8 @@ export function ApplicationCard({
     addSuffix: true,
   });
 
+  console.log("application", application)
+
   const getStatusBadgeStyle = (color: string) => {
     return {
       backgroundColor: color + "20",
@@ -82,6 +84,7 @@ export function ApplicationCard({
                 <span className="font-medium text-foreground">Applied:</span>{" "}
                 {appliedDate}
               </p>
+              {application.resume.resumeUrl && (
               <p className="text-muted-foreground">
                 <span className="font-medium text-foreground">Resume:</span>{" "}
                 <a
@@ -93,6 +96,7 @@ export function ApplicationCard({
                   View Resume
                 </a>
               </p>
+              )}
             </div>
           </div>
         </div>

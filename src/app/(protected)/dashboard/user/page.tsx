@@ -482,7 +482,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Salary Range Filter */}
-                <div className="mb-6">
+                {/* <div className="mb-6">
                   <h3 className="text-sm font-medium mb-3">Salary Range</h3>
                   <Select
                     value={filters.salaryRange || "0"}
@@ -501,7 +501,7 @@ export default function Dashboard() {
                       <SelectItem value="200000+">$200,000+</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
+                </div> */}
 
                 {/* Reset Filters Button */}
                 <Button

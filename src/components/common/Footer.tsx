@@ -4,7 +4,7 @@ import { Details } from "@/lib/data";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
-import { FaFacebookF, FaInstagram, FaLinkedinIn, FaPinterestP, FaTwitter, FaYoutube } from "react-icons/fa";
+import { FaFacebookF, FaInstagram, FaLinkedinIn, FaTwitter } from "react-icons/fa";
 
 const Footer: React.FC = () => {
   return (
@@ -20,7 +20,23 @@ const Footer: React.FC = () => {
             className="transition-transform duration-300 hover:scale-105"
           />
           <p className="text-gray-700 mt-4 font-semibold">Need help? 24/7</p>
-          <p className="text-[#007BFF] mt-1 font-medium">{Details.phone}</p>
+          <a 
+            href={`tel:${Details.phone}`}
+            className="text-[#007BFF] mt-1 font-medium hover:text-blue-600 transition-colors cursor-pointer inline-block"
+          >
+            {Details.phone}
+          </a>
+          
+          {/* Add email - either from Details or hardcoded */}
+          <div className="mt-2">
+            <a 
+              href={`mailto:${Details.email || 'contact@gennext.com'}`}
+              className="text-[#007BFF] font-medium hover:text-blue-600 transition-colors cursor-pointer inline-block"
+            >
+              {Details.email || 'contact@gennext.com'}
+            </a>
+          </div>
+          
           <p className="text-gray-600 mt-3">{Details.address}</p>
         </div>
 
@@ -43,12 +59,19 @@ const Footer: React.FC = () => {
           
           <h2 className="text-lg font-semibold text-gray-800 mt-6">Follow Us</h2>
           <div className="flex space-x-4 mt-3">
-            <FaFacebookF className="text-gray-600 hover:text-[#007BFF] cursor-pointer transition-colors" />
-            <FaLinkedinIn className="text-gray-600 hover:text-[#007BFF] cursor-pointer transition-colors" />
-            <FaTwitter className="text-gray-600 hover:text-[#007BFF] cursor-pointer transition-colors" />
-            <FaPinterestP className="text-gray-600 hover:text-[#007BFF] cursor-pointer transition-colors" />
-            <FaInstagram className="text-gray-600 hover:text-[#007BFF] cursor-pointer transition-colors" />
-            <FaYoutube className="text-gray-600 hover:text-[#007BFF] cursor-pointer transition-colors" />
+            <a href={Details.socialLinks.facebook} target="_blank" rel="noopener noreferrer">
+              <FaFacebookF className="text-gray-600 hover:text-[#007BFF] cursor-pointer transition-colors" />
+            </a>
+            <a href={Details.socialLinks.linkedin} target="_blank" rel="noopener noreferrer">
+              <FaLinkedinIn className="text-gray-600 hover:text-[#007BFF] cursor-pointer transition-colors" />
+            </a>
+            <a href={Details.socialLinks.twitter} target="_blank" rel="noopener noreferrer">
+              <FaTwitter className="text-gray-600 hover:text-[#007BFF] cursor-pointer transition-colors" />
+            </a>
+          
+            <a href={Details.socialLinks.instagram} target="_blank" rel="noopener noreferrer">
+              <FaInstagram className="text-gray-600 hover:text-[#007BFF] cursor-pointer transition-colors" />
+            </a>
           </div>
         </div>
       </div>

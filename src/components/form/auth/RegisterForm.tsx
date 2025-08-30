@@ -254,27 +254,41 @@ const RegisterForm = ({ text, role }: RegisterFormProps) => {
               />
 
               {/* Phone Field - FIXED VERSION */}
-              <FormField
-                control={form.control}
-                name="mobile"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <div className="relative group">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-gennext transition-colors" />
-                        <Input
-                          {...field}
-                          type="text"
-                          className="h-11 pl-10 pr-4 rounded-xl border-2 border-gray-200  transition-all  bg-gray-50/50 hover:bg-white"
-                          placeholder="Mobile (10 digits)"
-                          maxLength={10}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+             
+<FormField
+  control={form.control}
+  name="mobile"
+  render={({ field }) => (
+    <FormItem>
+      <FormControl>
+        <div className="relative group">
+          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-gennext transition-colors" />
+          <Input
+            {...field}
+            type="tel"
+            className="h-11 pl-10 pr-4 rounded-xl border-2 border-gray-200 transition-all bg-gray-50/50 hover:bg-white"
+            placeholder="Mobile (10 digits)"
+            maxLength={10}
+            onInput={(e) => {
+              // Remove any non-digit characters and limit to 10 digits
+              const target = e.target as HTMLInputElement;
+              const value = target.value.replace(/\D/g, '').slice(0, 10);
+              target.value = value;
+              field.onChange(value);
+            }}
+            onKeyPress={(e) => {
+              // Only allow digits
+              if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter'].includes(e.key)) {
+                e.preventDefault();
+              }
+            }}
+          />
+        </div>
+      </FormControl>
+      <FormMessage className="text-xs" />
+    </FormItem>
+  )}
+/>
 
               {/* Password Field */}
               <FormField

@@ -248,109 +248,98 @@ const AllJobListings = () => {
 
   // Mobile card component for jobs
   const JobCard = ({ item }: { item: (typeof paginatedResults)[0] }) => (
-    <Card
-      className="cursor-pointer hover:shadow-md transition-shadow"
-      onClick={() => router.push(`/jobs/${item.job.id}`)}
-    >
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <CardTitle className="text-lg capitalize leading-tight">
-              {item.job.title}
-            </CardTitle>
-            <div className="flex items-center mt-1 text-sm text-muted-foreground">
-              <Building className="h-3 w-3 mr-1" />
-              <span className="capitalize">{item.company.name}</span>
+    <Card className="cursor-pointer hover:shadow-md transition-shadow">
+      <Link href={`/jobs/${item.job.id}`} className="block">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <CardTitle className="text-lg capitalize leading-tight">
+                {item.job.title}
+              </CardTitle>
+              <div className="flex items-center mt-1 text-sm text-muted-foreground">
+                <Building className="h-3 w-3 mr-1" />
+                <span className="capitalize">{item.company.name}</span>
+              </div>
             </div>
+            {item.job.isFeatured && (
+              <Badge variant="secondary" className="text-xs">
+                Featured
+              </Badge>
+            )}
           </div>
-          {item.job.isFeatured && (
-            <Badge variant="secondary" className="text-xs">
-              Featured
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
+        </CardHeader>
 
-      <CardContent className="pt-0 space-y-2">
-        <div className="flex items-center text-sm text-muted-foreground">
-          <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-          <span className="capitalize truncate">
-            {item.job.location || "Remote/Flexible"}
-          </span>
-        </div>
-
-        {item.job.salary && (
+        <CardContent className="pt-0 space-y-2">
           <div className="flex items-center text-sm text-muted-foreground">
-            <DollarSign className="h-3 w-3 mr-1 flex-shrink-0" />
-            <span>{item.job.salary}</span>
+            <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+            <span className="capitalize truncate">
+              {item.job.location || "Remote/Flexible"}
+            </span>
           </div>
-        )}
 
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
-          <span>{formatDateddmmyyy(item.job.createdAt.toString())}</span>
-        </div>
+          {item.job.salary && (
+            <div className="flex items-center text-sm text-muted-foreground">
+              <DollarSign className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span>{item.job.salary}</span>
+            </div>
+          )}
 
-        <div className="flex flex-wrap gap-2 mt-2">
-          <Badge
-            className={(() => {
-              switch (item.job.employmentType) {
-                case "FULL_TIME":
-                  return "bg-blue-500 hover:bg-blue-600 text-white";
-                case "PART_TIME":
-                  return "bg-purple-500 hover:bg-purple-600 text-white";
-                case "CONTRACT":
-                  return "bg-amber-500 hover:bg-amber-600 text-white";
-                case "FREELANCE":
-                  return "bg-teal-500 hover:bg-teal-600 text-white";
-                case "INTERNSHIP":
-                  return "bg-green-500 hover:bg-green-600 text-white";
-                case "REMOTE":
-                  return "bg-pink-500 hover:bg-pink-600 text-white";
-                case "Temporary":
-                  return "bg-red-500 hover:bg-red-600 text-white";
-                default:
-                  return "bg-gray-500 hover:bg-gray-600 text-white";
-              }
-            })()}
-          >
-            {formatEmploymentType(item.job.employmentType)}
-          </Badge>
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
+            <span>{formatDateddmmyyy(item.job.createdAt.toString())}</span>
+          </div>
 
-          <Badge variant="outline" className="text-xs">
-            {item.category.name}
-          </Badge>
-        </div>
-      </CardContent>
+          <div className="flex flex-wrap gap-2 mt-2">
+            <Badge
+              className={(() => {
+                switch (item.job.employmentType) {
+                  case "FULL_TIME":
+                    return "bg-blue-500 hover:bg-blue-600 text-white";
+                  case "PART_TIME":
+                    return "bg-purple-500 hover:bg-purple-600 text-white";
+                  case "CONTRACT":
+                    return "bg-amber-500 hover:bg-amber-600 text-white";
+                  case "FREELANCE":
+                    return "bg-teal-500 hover:bg-teal-600 text-white";
+                  case "INTERNSHIP":
+                    return "bg-green-500 hover:bg-green-600 text-white";
+                  case "REMOTE":
+                    return "bg-pink-500 hover:bg-pink-600 text-white";
+                  case "Temporary":
+                    return "bg-red-500 hover:bg-red-600 text-white";
+                  default:
+                    return "bg-gray-500 hover:bg-gray-600 text-white";
+                }
+              })()}
+            >
+              {formatEmploymentType(item.job.employmentType)}
+            </Badge>
+
+            <Badge variant="outline" className="text-xs">
+              {item.category.name}
+            </Badge>
+          </div>
+        </CardContent>
+      </Link>
 
       <CardFooter className="pt-2 gap-2">
-        <Button
-          variant="outline"
-          size="sm"
+        <Link href={`/jobs/${item.job.id}`} className="flex-1">
+          <Button variant="outline" size="sm" className="w-full">
+            <Eye className="h-4 w-4 mr-1" />
+            View
+          </Button>
+        </Link>
+        <Link
+          href={`/jobs/apply?id=${item.job.id}&title=${encodeURIComponent(
+            item.job.title
+          )}`}
           className="flex-1"
-          onClick={(e) => {
-            e.stopPropagation();
-            router.push(`/jobs/${item.job.id}`);
-          }}
         >
-          <Eye className="h-4 w-4 mr-1" />
-          View
-        </Button>
-        <Button
-          size="sm"
-          className="flex-1"
-          onClick={(e) => {
-            e.stopPropagation();
-            router.push(
-              `/jobs/apply?id=${item.job.id}&title=${encodeURIComponent(
-                item.job.title
-              )}`
-            );
-          }}
-        >
-          <FileText className="h-4 w-4 mr-1" />
-          Apply
-        </Button>
+          <Button size="sm" className="w-full">
+            <FileText className="h-4 w-4 mr-1" />
+            Apply
+          </Button>
+        </Link>
       </CardFooter>
     </Card>
   );
@@ -623,13 +612,13 @@ const AllJobListings = () => {
                                   {paginatedResults.map((item) => (
                                     <TableRow
                                       key={item.job.id}
-                                      className="cursor-pointer hover:bg-gray-50"
-                                      onClick={() =>
-                                        router.push(`/jobs/${item.job.id}`)
-                                      }
+                                      className="hover:bg-gray-50"
                                     >
                                       <TableCell className="font-medium">
-                                        <div className="flex flex-col capitalize">
+                                        <Link
+                                          href={`/jobs/${item.job.id}`}
+                                          className="flex flex-col capitalize hover:text-blue-600"
+                                        >
                                           {item.job.title}
                                           {item.job.isFeatured && (
                                             <Badge
@@ -639,7 +628,7 @@ const AllJobListings = () => {
                                               Featured
                                             </Badge>
                                           )}
-                                        </div>
+                                        </Link>
                                       </TableCell>
                                       <TableCell className="capitalize">
                                         {item.company.name}
@@ -691,13 +680,17 @@ const AllJobListings = () => {
                                           <TooltipProvider>
                                             <Tooltip>
                                               <TooltipTrigger asChild>
-                                                <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  aria-label="View Job Details"
+                                                <Link
+                                                  href={`/jobs/${item.job.id}`}
                                                 >
-                                                  <Eye size={16} />
-                                                </Button>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label="View Job Details"
+                                                  >
+                                                    <Eye size={16} />
+                                                  </Button>
+                                                </Link>
                                               </TooltipTrigger>
                                               <TooltipContent>
                                                 <p>View Details</p>
@@ -708,23 +701,21 @@ const AllJobListings = () => {
                                           <TooltipProvider>
                                             <Tooltip>
                                               <TooltipTrigger asChild>
-                                                <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  aria-label="Apply Now"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    router.push(
-                                                      `/jobs/apply?id=${
-                                                        item.job.id
-                                                      }&title=${encodeURIComponent(
-                                                        item.job.title
-                                                      )}`
-                                                    );
-                                                  }}
+                                                <Link
+                                                  href={`/jobs/apply?id=${
+                                                    item.job.id
+                                                  }&title=${encodeURIComponent(
+                                                    item.job.title
+                                                  )}`}
                                                 >
-                                                  <FileText size={16} />
-                                                </Button>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label="Apply Now"
+                                                  >
+                                                    <FileText size={16} />
+                                                  </Button>
+                                                </Link>
                                               </TooltipTrigger>
                                               <TooltipContent>
                                                 <p>Apply Now</p>
@@ -978,7 +969,7 @@ const AllJobListings = () => {
                     </div>
 
                     {/* Status Filter */}
-                    <div className="mb-4">
+                    {/* <div className="mb-4">
                       <h3 className="text-sm font-medium mb-2">Status</h3>
                       {APPLICATION_STATUSES.map((status) => (
                         <div
@@ -1011,10 +1002,10 @@ const AllJobListings = () => {
                           </Label>
                         </div>
                       ))}
-                    </div>
+                    </div> */}
 
                     {/* Salary Range Filter */}
-                    <div className="mb-4">
+                    {/* <div className="mb-4">
                       <h3 className="text-sm font-medium mb-2">Salary Range</h3>
                       <Select
                         value={filters.salaryRange || "0"}
@@ -1046,7 +1037,7 @@ const AllJobListings = () => {
                           <SelectItem value="200000+">$200,000+</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
+                    </div> */}
 
                     {/* Reset Filters Button */}
                     <Button
