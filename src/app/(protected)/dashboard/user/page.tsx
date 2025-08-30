@@ -1,7 +1,6 @@
 // Dashboard.tsx with Fixed Responsive Split View
 /* eslint-disable @typescript-eslint/no-unused-vars*/
 "use client";
-import { useState, useEffect } from "react";
 import {
   fetchAllJobLocations,
   fetchCategories,
@@ -10,6 +9,7 @@ import {
   fetchJobDetails,
   fetchResumes,
 } from "@/api";
+import { MergedSidebar } from "@/components/common/Filterapllication";
 import Footer from "@/components/common/Footer";
 import Navbar from "@/components/common/Navbar";
 import { Button } from "@/components/ui/button";
@@ -21,9 +21,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Filter } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
@@ -32,9 +32,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { MergedSidebar } from "@/components/users/FilterSidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ApplicationCard } from "@/components/users/applicationCard";
 import { DetailView } from "@/components/users/DetailView";
+// import { MergedSidebar } from "@/components/users/FilterSidebar";
 import { combineData, filterApplications } from "@/helpers";
 import {
   ALL_JOB_TYPES,
@@ -43,10 +44,9 @@ import {
   JobApplicationView,
   JobListing,
 } from "@/types";
+import { Filter } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useEffect, useState } from "react";
 
 export default function Dashboard() {
   const { data: session, status: sessionStatus } = useSession();
@@ -240,12 +240,12 @@ export default function Dashboard() {
                   : [...prev.employmentType, type],
               }))
             }
-            updateDateFilter={(field, date) =>
-              setFilters((prev) => ({ ...prev, [field]: date }))
-            }
-            onFilterChange={(name, value) =>
-              setFilters((prev) => ({ ...prev, [name]: value }))
-            }
+            // updateStatusFilter={(field: any, date: any) =>
+            //   setFilters((prev) => ({ ...prev, [field]: date }))
+            // }
+            // onFilterChange={(name, value) =>
+            //   setFilters((prev) => ({ ...prev, [name]: value }))
+            // }
             onResetFilters={handleResetFilters}
           />
 

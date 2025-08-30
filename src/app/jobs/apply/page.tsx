@@ -63,20 +63,17 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 // Form validation schema - updated to make fields required properly
+
+// 1. Update the form validation schema - replace the existing resume field:
+// Alternative schema - simpler approach
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
   mobile: z.string().min(10, "Please enter a valid phone number"),
   education: z.string().min(1, "Education is required"),
-  experience: z.string().optional(), // Make optional
+  experience: z.string().optional(),
   skills: z.string().min(1, "Please list your relevant skills"),
-  resume: z
-    .union([
-      z.instanceof(File),
-      z.string().url("Please provide a valid URL"),
-      z.string().length(0),
-    ])
-    .optional(), // Make optional
+  resume: z.string().min(1, "Resume is required. Please upload your resume."),
   coverLetter: z.string().optional(),
 });
 
@@ -167,6 +164,14 @@ const JobApplicationForm: React.FC = () => {
     [{ company: "", role: "", duration: "", responsibilities: "" }]
   );
 
+  // Add refs for field sections
+  const nameRef = useRef<HTMLDivElement>(null);
+  const emailRef = useRef<HTMLDivElement>(null);
+  const mobileRef = useRef<HTMLDivElement>(null);
+  const educationRef = useRef<HTMLDivElement>(null);
+  const skillsRef = useRef<HTMLDivElement>(null);
+  const resumeRef = useRef<HTMLDivElement>(null);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -181,18 +186,69 @@ const JobApplicationForm: React.FC = () => {
     },
   });
 
-
   // Add this useEffect to sync educationEntries with form field
-useEffect(() => {
-  const formattedEducation = formatEducationForDB(educationEntries);
-  form.setValue('education', formattedEducation, { shouldValidate: true });
-}, [educationEntries, form]);
+  useEffect(() => {
+    const formattedEducation = formatEducationForDB(educationEntries);
+    form.setValue("education", formattedEducation, { shouldValidate: true });
+  }, [educationEntries, form]);
 
-// Add this useEffect to sync experienceEntries with form field  
-useEffect(() => {
-  const formattedExperience = formatExperienceForDB(experienceEntries);
-  form.setValue('experience', formattedExperience, { shouldValidate: true });
-}, [experienceEntries, form]);
+  // Add this useEffect to sync experienceEntries with form field
+  useEffect(() => {
+    const formattedExperience = formatExperienceForDB(experienceEntries);
+    form.setValue("experience", formattedExperience, { shouldValidate: true });
+  }, [experienceEntries, form]);
+
+const scrollToFirstError = async () => {
+  // Wait for form state to update
+  await new Promise(resolve => setTimeout(resolve, 150));
+  
+  const formState = form.formState;
+  const errors = formState.errors;
+
+  console.log("Current form errors:", errors);
+
+  // Check fields in order and scroll to first error
+  if (errors.name && nameRef.current) {
+    console.log("Scrolling to name field");
+    nameRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    return true;
+  }
+  if (errors.email && emailRef.current) {
+    console.log("Scrolling to email field");
+    emailRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    return true;
+  }
+  if (errors.mobile && mobileRef.current) {
+    console.log("Scrolling to mobile field");
+    mobileRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    return true;
+  }
+  if (errors.education && educationRef.current) {
+    console.log("Scrolling to education field");
+    educationRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    return true;
+  }
+  if (errors.skills && skillsRef.current) {
+    console.log("Scrolling to skills field");
+    skillsRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    return true;
+  }
+  if (errors.resume && resumeRef.current) {
+    console.log("Scrolling to resume field");
+    resumeRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Add a small offset to ensure the field is visible
+    setTimeout(() => {
+      window.scrollBy(0, -50);
+    }, 500);
+    return true;
+  }
+  
+  return false;
+};
+
   // Parse functions (same as profile page)
   const parseEducationData = (educationString: string): EducationEntry[] => {
     if (!educationString) return [{ college: "", degree: "", batch: "" }];
@@ -430,7 +486,7 @@ useEffect(() => {
           setFetchError(
             "Failed to load your profile data. Please try again later."
           );
-          toast.error("Failed loadyour profile data");
+          toast.error("Failed to load your profile data");
         } finally {
           setIsLoading(false);
         }
@@ -442,136 +498,176 @@ useEffect(() => {
     fetchData();
   }, [session?.user?.id, jobId, id, status]);
 
+const onSubmit: SubmitHandler<FormValues> = async (data) => {
+  console.log("Form submission started with data:", data);
 
+  if (hasApplied) {
+    toast.error("You have already applied to this job");
+    return;
+  }
 
-  const onSubmit: SubmitHandler<FormValues> = async (data) => {
-    console.log("Form submission started with data:", data);
+  setIsSubmitting(true);
+  // let hasCustomErrors = false;
 
-    const isValid = await form.trigger();
-    if (!isValid) {
-      console.log("Form validation failed");
-      toast.error("Please fill in all required fields correctly");
+  try {
+    // Clear any existing errors first
+    form.clearErrors();
+
+    // Custom validation for resume - check both field value and resumeUrl
+    const hasResumeFile = resumeUrl && resumeUrl.trim() !== "";
+    const hasResumeField = data.resume && data.resume.trim() !== "";
+    
+    if (!hasResumeFile && !hasResumeField) {
+      console.log("Resume validation failed - no resume found");
+      console.log("resumeUrl:", resumeUrl);
+      console.log("data.resume:", data.resume);
+      
+      // Set the error and immediately scroll
+      form.setError("resume", { 
+        type: "required", 
+        message: "Resume is required. Please upload your resume before submitting." 
+      });
+      
+      toast.error("Resume is required. Please upload your resume before submitting.");
+      
+      // Immediate scroll to resume section
+      if (resumeRef.current) {
+        resumeRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        // Add extra scroll to ensure visibility
+        setTimeout(() => {
+          window.scrollBy(0, -80);
+        }, 600);
+      }
+      
+      setIsSubmitting(false);
       return;
     }
 
-    if (hasApplied) {
-      toast.error("You have already Applied to this job");
-      return;
-    }
-
-    // Make education and experience optional
+    // Custom validation for education
     const formattedEducation = formatEducationForDB(educationEntries);
+    if (!formattedEducation) {
+      console.log("Education validation failed");
+      form.setError("education", { 
+        type: "required", 
+        message: "Please fill in at least one education entry." 
+      });
+      
+      toast.error("Please fill in at least one education entry.");
+      
+      if (educationRef.current) {
+        educationRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => window.scrollBy(0, -80), 600);
+      }
+      
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Trigger standard form validation
+    const isFormValid = await form.trigger();
+    
+    if (!isFormValid) {
+      console.log("Form validation failed. Errors:", form.formState.errors);
+      toast.error("Please fill in all required fields correctly");
+      
+      // Force scroll to error after state updates
+      setTimeout(async () => {
+        const scrolled = await scrollToFirstError();
+        if (!scrolled) {
+          console.log("No error field found to scroll to");
+        }
+      }, 300);
+      
+      setIsSubmitting(false);
+      return;
+    }
+
+    // If we reach here, validation passed
+    console.log("All validations passed, proceeding with submission");
+    
+    // Continue with your existing submission logic...
     const formattedExperience = formatExperienceForDB(experienceEntries);
 
-    if (!formattedEducation) {
-      toast.error("Please fill in at least one education entry.");
-      return;
+    const formData = new FormData();
+    formData.append("userId", userId);
+
+    if (formattedEducation) formData.append("education", formattedEducation);
+    if (formattedExperience) formData.append("experience", formattedExperience);
+    if (data.skills) formData.append("skills", data.skills);
+
+    if (typeof data.resume === "string" && data.resume.trim() !== "") {
+      formData.append("resumeUrl", data.resume);
     }
 
-    console.log("All validations passed, proceeding with submission");
-    setIsSubmitting(true);
-    setFetchError(null);
+    let currentResumeId = resumeId;
+    let resumeResponse;
 
-    try {
-      // Create form data for resume submission
-      const formData = new FormData();
-      formData.append("userId", userId);
-
-      if (formattedEducation) formData.append("education", formattedEducation);
-      if (formattedExperience)
-        formData.append("experience", formattedExperience);
-      if (data.skills) formData.append("skills", data.skills);
-
-      // Handle resume file or URL
-      if (data.resume instanceof File) {
-        formData.append("resume", data.resume);
-      } else if (typeof data.resume === "string" && data.resume.trim() !== "") {
-        formData.append("resumeUrl", data.resume);
-      }
-
-      // Variable to store the resume ID we'll use for application
-      let currentResumeId = resumeId;
-      let resumeResponse;
-
-      // Update existing resume or create new one
-      console.log("Current Resume ID:", currentResumeId);
-      if (currentResumeId) {
-        resumeResponse = await fetch(`/api/resumes?id=${currentResumeId}`, {
-          method: "PUT",
-          body: formData,
-        });
-      } else {
-        resumeResponse = await fetch(`/api/resumes`, {
-          method: "POST",
-          body: formData,
-        });
-      }
-
-      if (!resumeResponse.ok) {
-        const errorData = await resumeResponse.json();
-        throw new Error(
-          errorData.error || `Resume API error: ${resumeResponse.status}`
-        );
-      }
-
-      const resumeResult = await resumeResponse.json();
-
-      // Store the resume ID for application
-      if (!currentResumeId && resumeResult.data?.id) {
-        currentResumeId = resumeResult.data.id;
-        setresumeId(currentResumeId);
-      }
-
-      // After resume handling, submit the job application
-      const applicationResponse = await fetch(`/api/application`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          jobId: id || jobId,
-          resumeId: currentResumeId,
-          coverLetter: data.coverLetter || "",
-        }),
+    console.log("Current Resume ID:", currentResumeId);
+    if (currentResumeId) {
+      resumeResponse = await fetch(`/api/resumes?id=${currentResumeId}`, {
+        method: "PUT",
+        body: formData,
       });
-
-      if (!applicationResponse.ok) {
-        const errorData = await applicationResponse.json();
-        throw new Error(
-          errorData.error ||
-            `Application API error: ${applicationResponse.status}`
-        );
-      }
-
-      const applicationResult = await applicationResponse.json();
-
-      // Update UI state for success
-      setSubmitSuccess(true);
-      setApplicationData(applicationResult.data);
-      setHasApplied(true);
-
-
-      toast.success("Your job application has been submitted successfully!");
-
-    
-        router.push(`/dashboard/user`);
-    } catch (error) {
-      console.error("Error submitting application:", error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to submit your application. Please try again later.";
-      setFetchError(errorMessage);
-
-      // toast({
-      //   title: "Submission Failed",
-      //   description: errorMessage,
-      //   variant: "destructive",
-      // });
-      toast.error(errorMessage);
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      resumeResponse = await fetch(`/api/resumes`, {
+        method: "POST",
+        body: formData,
+      });
     }
-  };
+
+    if (!resumeResponse.ok) {
+      const errorData = await resumeResponse.json();
+      throw new Error(
+        errorData.error || `Resume API error: ${resumeResponse.status}`
+      );
+    }
+
+    const resumeResult = await resumeResponse.json();
+
+    if (!currentResumeId && resumeResult.data?.id) {
+      currentResumeId = resumeResult.data.id;
+      setresumeId(currentResumeId);
+    }
+
+    const applicationResponse = await fetch(`/api/application`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        jobId: id || jobId,
+        resumeId: currentResumeId,
+        coverLetter: data.coverLetter || "",
+      }),
+    });
+
+    if (!applicationResponse.ok) {
+      const errorData = await applicationResponse.json();
+      throw new Error(
+        errorData.error || `Application API error: ${applicationResponse.status}`
+      );
+    }
+
+    const applicationResult = await applicationResponse.json();
+
+    setSubmitSuccess(true);
+    setApplicationData(applicationResult.data);
+    setHasApplied(true);
+
+    toast.success("Your job application has been submitted successfully!");
+    router.push(`/dashboard/user`);
+
+  } catch (error) {
+    console.error("Error submitting application:", error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to submit your application. Please try again later.";
+    setFetchError(errorMessage);
+    toast.error(errorMessage);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   // Function to handle sign in when user is not authenticated
   const handleSignIn = async () => {
@@ -582,11 +678,6 @@ useEffect(() => {
   const downloadApplicationPDF = () => {
     if (!applicationRef.current || !html2pdfModule) {
       console.error("Application reference or html2pdf module not available");
-      // toast({
-      //   title: "Error",
-      //   description: "Unable to generate PDF. Please try again later.",
-      //   variant: "destructive",
-      // });
       toast.error("Unable to generate PDF. Please try again later.");
       return;
     }
@@ -607,26 +698,15 @@ useEffect(() => {
         .save()
         .then(() => {
           console.log("PDF generated successfully");
-          // toast({
-          //   title: "PDF Downloaded",
-          //   description: "Your application PDF has been downloaded successfully.",
-          // });
+          toast.success("Your application PDF has been downloaded successfully.");
         })
         .catch((err: unknown) => {
           console.error("Error in PDF generation:", err);
-          // toast({
-          //   title: "PDF Error",
-          //   description: "Failed to generate PDF. Please try again.",
-          //   variant: "destructive",
-          // });
+          toast.error("Failed to generate PDF. Please try again.");
         });
     } catch (error) {
       console.error("Error in PDF generation process:", error);
-      // toast({
-      //   title: "PDF Error",
-      //   description: "Failed to generate PDF. Please try again.",
-      //   variant: "destructive",
-      // });
+      toast.error("Failed to generate PDF. Please try again.");
     }
   };
 
@@ -643,6 +723,49 @@ useEffect(() => {
       .map((skill) => skill.trim())
       .filter((skill) => skill.length > 0);
   };
+
+  const validateEducationEntries = (): boolean => {
+  const hasValidEducation = educationEntries.some(entry => 
+    entry.college.trim() || entry.degree.trim() || entry.batch.trim()
+  );
+  
+  if (!hasValidEducation) {
+    form.setError("education", { 
+      type: "required", 
+      message: "Please fill in at least one education entry." 
+    });
+    return false;
+  }
+  
+  // Check if any education entry has incomplete required fields
+  const hasIncompleteEducation = educationEntries.some(entry => {
+    const hasAnyField = entry.college.trim() || entry.degree.trim() || entry.batch.trim();
+    const hasAllRequiredFields = entry.college.trim() && entry.degree.trim() && entry.batch.trim();
+    return hasAnyField && !hasAllRequiredFields;
+  });
+  
+  if (hasIncompleteEducation) {
+    form.setError("education", { 
+      type: "validation", 
+      message: "Please complete all fields for each education entry or remove incomplete entries." 
+    });
+    return false;
+  }
+  
+  return true;
+};
+
+// Fix 5: Enhanced resume validation
+const validateResumeField = (): boolean => {
+  if (!resumeUrl && (!form.getValues("resume") || form.getValues("resume")?.trim() === "")) {
+    form.setError("resume", { 
+      type: "required", 
+      message: "Resume is required. Please upload your resume." 
+    });
+    return false;
+  }
+  return true;
+};
 
   if (isLoading) {
     return (
@@ -801,81 +924,87 @@ useEffect(() => {
                     {/* Left Column */}
                     <div className="space-y-6">
                       {/* Personal Information */}
-                      <div className="bg-gray-50 p-4 sm:p-4 pb-2 rounded-lg">
+                      <div ref={nameRef} className="bg-gray-50 p-4 sm:p-4 pb-2 rounded-lg">
                         <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 flex items-center gap-2 text-gray-800">
                           <User className="h-5 w-5 text-blue-600" />
                           Personal Information
                         </h3>
                         <div className="grid grid-cols-1 gap-2">
-                          <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-sm font-medium text-gray-700">
-                                  Full Name *
-                                </FormLabel>
-                                <FormControl>
-                                  <Input
-                                    className="mt-1 capitalize text-sm sm:text-base"
-                                    placeholder="John Doe"
-                                    {...field}
-                                    disabled
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          
+<FormField
+  control={form.control}
+  name="name"
+  render={({ field }) => (
+    <FormItem ref={nameRef}>
+      <FormLabel className="text-sm font-medium text-gray-700">
+        Full Name *
+      </FormLabel>
+      <FormControl>
+        <Input
+          className="mt-1 capitalize text-sm sm:text-base"
+          placeholder="John Doe"
+          {...field}
+          disabled
+        />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
 
-                          <FormField
-                            control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-sm font-medium text-gray-700">
-                                  Email *
-                                </FormLabel>
-                                <FormControl>
-                                  <Input
-                                    className="mt-1 text-sm sm:text-base"
-                                    type="email"
-                                    placeholder="example@example.com"
-                                    {...field}
-                                    disabled
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
 
-                          <FormField
-                            control={form.control}
-                            name="mobile"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-sm font-medium text-gray-700">
-                                  Phone *
-                                </FormLabel>
-                                <FormControl>
-                                  <Input
-                                    className="mt-1 text-sm sm:text-base"
-                                    type="tel"
-                                    placeholder="123-456-7890"
-                                    {...field}
-                                    disabled
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          <div ref={emailRef}>
+                            <FormField
+  control={form.control}
+  name="email"
+  render={({ field }) => (
+    <FormItem ref={emailRef}>
+      <FormLabel className="text-sm font-medium text-gray-700">
+        Email *
+      </FormLabel>
+      <FormControl>
+        <Input
+          className="mt-1 text-sm sm:text-base"
+          type="email"
+          placeholder="example@example.com"
+          {...field}
+          disabled
+        />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+                          </div>
+
+                          <div ref={mobileRef}>
+                            <FormField
+  control={form.control}
+  name="mobile"
+  render={({ field }) => (
+    <FormItem ref={mobileRef}>
+      <FormLabel className="text-sm font-medium text-gray-700">
+        Phone *
+      </FormLabel>
+      <FormControl>
+        <Input
+          className="mt-1 text-sm sm:text-base"
+          type="tel"
+          placeholder="123-456-7890"
+          {...field}
+          disabled
+        />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+                          </div>
                         </div>
                       </div>
 
                       {/* Multiple Education Entries */}
-                      <div className="bg-gray-50 p-4 sm:p-4 py-4 rounded-lg">
+                      <div ref={educationRef} className="bg-gray-50 p-4 sm:p-4 py-4 rounded-lg">
                         <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
                           <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2 text-gray-800">
                             <GraduationCap className="h-5 w-5 text-blue-600" />
@@ -954,25 +1083,41 @@ useEffect(() => {
     Passing Year *
   </Label>
   <Input
-    type="text" // use text so we can fully control validation
+    type="text"
     value={entry.batch}
     onChange={(e) => {
       const value = e.target.value;
-
-      // Allow only digits
+      
+      // Allow only digits and limit to 4 characters
       if (/^\d{0,4}$/.test(value)) {
-        // Optional: validate realistic year range (1900–2099)
-        if (value === "" || (parseInt(value) >= 1900 && parseInt(value) <= 2099)) {
+        // Allow empty string or incomplete years (1, 2, 3 digits)
+        if (value === "" || value.length < 4) {
           handleEducationChange(index, "batch", value);
+        } 
+        // For complete 4-digit years, validate the range
+        else if (value.length === 4) {
+          const year = parseInt(value);
+          if (year >= 1900 && year <= 2099) {
+            handleEducationChange(index, "batch", value);
+          }
+          // If invalid year, don't update (this prevents typing invalid complete years)
         }
+      }
+    }}
+    onBlur={(e) => {
+      // Validate on blur for incomplete entries
+      const value = e.target.value;
+      if (value.length > 0 && value.length < 4) {
+        // Could show a warning or clear invalid partial entries
+        console.log("Incomplete year entered:", value);
       }
     }}
     placeholder="e.g., 2024"
     className="mt-1 text-sm sm:text-base"
     disabled={hasApplied}
+    maxLength={4}
   />
 </div>
-
                               </div>
                             </div>
                           ))}
@@ -1100,7 +1245,7 @@ useEffect(() => {
                     {/* Right Column */}
                     <div className="space-y-6">
                       {/* Skills Section */}
-                      <div className="bg-gray-50 p-4 sm:p-4 rounded-lg">
+                      <div ref={skillsRef} className="bg-gray-50 p-4 sm:p-4 rounded-lg">
                         <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 flex items-center gap-2 text-gray-800">
                           <Code className="h-5 w-5 text-blue-600" />
                           Skills & Technologies
@@ -1130,7 +1275,6 @@ useEffect(() => {
                                 parseSkillsForDisplay(field.value).length >
                                   0 && (
                                   <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                                    {/* <p className="text-sm font-medium text-gray-700 mb-2">Skills Preview:</p> */}
                                     <div className="flex flex-wrap gap-2">
                                       {parseSkillsForDisplay(field.value).map(
                                         (skill, index) => (
@@ -1153,123 +1297,105 @@ useEffect(() => {
                       </div>
 
                       {/* Resume Upload Section */}
-                      <div className="bg-gray-50 p-4 sm:p-4 rounded-lg">
-                        <div className="flex items-center justify-between mb-4 sm:mb-6">
-                          <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2 text-gray-800">
-                            <FileText className="h-5 w-5 text-blue-600" />
-                            Resume/CV(optional)
-                          </h3>
-                          {resumeUrl && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open(resumeUrl, "_blank")}
-                              className="text-blue-600 hover:bg-blue-50 text-xs sm:text-sm"
-                            >
-                              View
-                            </Button>
-                          )}
-                        </div>
 
-                        {/* Resume Status Display */}
-                        {resumeUploaded && resumeUrl && (
-                          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center">
-                            <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-green-800">
-                                Resume Uploaded Successfully
-                              </p>
-                              <p className="text-xs text-green-600">
-                                {fileName}
-                              </p>
-                            </div>
-                          </div>
-                        )}
 
-                        {!hasApplied && (
-                          <div className="mt-4">
-                            <FormField
-                              control={form.control}
-                              name="resume"
-                              render={({ field: { onChange, ...field } }) => (
-                                <FormItem>
-                                  <FormLabel className="text-sm font-medium text-gray-700">
-                                    {resumeUploaded
-                                      ? "Update Resume"
-                                      : "Upload Resume (Optional)"}
-                                  </FormLabel>
-                                  <FormControl>
-                                    <div className="mt-2">
-                                      {isUploading ? (
-                                        <div className="flex items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
-                                          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                                          <span className="ml-2 text-gray-600">
-                                            Uploading...
-                                          </span>
-                                        </div>
-                                      ) : (
-                                        <UploadDropzone
-                                          endpoint="docUploader"
-                                          onBeforeUploadBegin={(files) => {
-                                            setIsUploading(true);
-                                            return files;
-                                          }}
-                                          onClientUploadComplete={(res) => {
-                                            if (res && res.length > 0) {
-                                              const fileUrl =
-                                                res[0].serverData.fileUrl;
-                                              const uploadedFileName =
-                                                res[0].name;
-                                              setResumeUrl(fileUrl);
-                                              setFileName(uploadedFileName);
-                                              setResumeUploaded(true);
-                                              onChange(fileUrl);
+<div ref={resumeRef} className="bg-gray-50 p-4 sm:p-4 rounded-lg">
+  <div className="flex items-center justify-between mb-4 sm:mb-6">
+    <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2 text-gray-800">
+      <FileText className="h-5 w-5 text-blue-600" />
+      Resume/CV *
+    </h3>
+    {resumeUrl && (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => window.open(resumeUrl, "_blank")}
+        className="text-blue-600 hover:bg-blue-50 text-xs sm:text-sm"
+      >
+        View
+      </Button>
+    )}
+  </div>
 
-                                              // toast({
-                                              //   title: "Resume Uploaded",
-                                              //   description: `${uploadedFileName} has been uploaded successfully.`,
-                                              // });
-                                              toast.success("Resume uploaded");
-                                            }
-                                            setIsUploading(false);
-                                          }}
-                                          onUploadError={(error: Error) => {
-                                            console.error(
-                                              "Upload error:",
-                                              error
-                                            );
-                                            setFetchError(
-                                              "Failed to upload resume. Please try again."
-                                            );
-                                            setIsUploading(false);
+  {/* Resume Status Display */}
+  {resumeUploaded && resumeUrl && (
+    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center">
+      <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
+      <div className="flex-1">
+        <p className="text-sm font-medium text-green-800">
+          Resume Uploaded Successfully
+        </p>
+        <p className="text-xs text-green-600">
+          {fileName}
+        </p>
+      </div>
+    </div>
+  )}
 
-                                            // toast({
-                                            //   title: "Upload Failed",
-                                            //   description: "Failed to upload resume. Please try again.",
-                                            //   variant: "destructive",
-                                            // });
-                                            toast.error(
-                                              "Failed to Upload resume. Please Try agaain"
-                                            );
-                                          }}
-                                          className="ut-button:bg-blue-600 ut-button:hover:bg-blue-700"
-                                        />
-                                      )}
-                                    </div>
-                                  </FormControl>
-                                  <FormDescription className="text-gray-600">
-                                    {resumeUploaded
-                                      ? "Upload a new file to replace your current resume (PDF preferred)"
-                                      : "Upload your resume (PDF preferred)"}
-                                  </FormDescription>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        )}
-                      </div>
+  {!hasApplied && (
+    <div className="mt-4">
+      <FormField
+        control={form.control}
+        name="resume"
+        render={({ field: { onChange, ...field } }) => (
+          <FormItem>
+            <FormLabel className="text-sm font-medium text-gray-700">
+              {resumeUploaded ? "Update Resume *" : "Upload Resume *"}
+            </FormLabel>
+            <FormControl>
+              <div className="mt-2">
+                {isUploading ? (
+                  <div className="flex items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                    <span className="ml-2 text-gray-600">Uploading...</span>
+                  </div>
+                ) : (
+                  <UploadDropzone
+                    endpoint="docUploader"
+                    onBeforeUploadBegin={(files) => {
+                      setIsUploading(true);
+                      return files;
+                    }}
+                    onClientUploadComplete={(res) => {
+                      if (res && res.length > 0) {
+                        const fileUrl = res[0].serverData.fileUrl;
+                        const uploadedFileName = res[0].name;
+                        setResumeUrl(fileUrl);
+                        setFileName(uploadedFileName);
+                        setResumeUploaded(true);
+                        onChange(fileUrl);
+
+                        // Clear any existing resume error
+                        form.clearErrors("resume");
+
+                        toast.success("Resume uploaded successfully");
+                      }
+                      setIsUploading(false);
+                    }}
+                    onUploadError={(error: Error) => {
+                      console.error("Upload error:", error);
+                      setFetchError("Failed to upload resume. Please try again.");
+                      setIsUploading(false);
+                      toast.error("Failed to upload resume. Please try again.");
+                    }}
+                    className="ut-button:bg-blue-600 ut-button:hover:bg-blue-700"
+                  />
+                )}
+              </div>
+            </FormControl>
+            <FormDescription className="text-gray-600">
+              {resumeUploaded
+                ? "Upload a new file to replace your current resume (PDF preferred) - Required"
+                : "Upload your resume (PDF preferred) - Required"}
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </div>
+  )}
+</div>
 
                       {/* Cover Letter Section */}
                       <div className="bg-gray-50 p-4 rounded-lg">
