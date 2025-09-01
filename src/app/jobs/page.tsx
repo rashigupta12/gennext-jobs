@@ -20,6 +20,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Pagination,
   PaginationContent,
@@ -28,6 +31,14 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -43,25 +54,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { MergedSidebar } from "@/components/users/FilterSidebar";
+import SalaryFilter from "@/components/users/SalaryFilter";
 import {
   combineJobData,
   filterJobs,
@@ -79,20 +73,22 @@ import {
   Subcategory,
 } from "@/types";
 import {
+  Building,
+  Calendar,
+  DollarSign,
   Eye,
   FileText,
-  MapPin,
-  DollarSign,
-  Calendar,
-  Building,
   Filter,
+  MapPin,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 
 const AllJobListings = () => {
   // State for job listings and data
+  const { data: session } = useSession();
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -116,6 +112,60 @@ const AllJobListings = () => {
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [applications, setApplications] = useState<JobApplicationView[]>([]);
 
+  const handleSalaryRangeChange = useCallback(
+    (minSalary: string, maxSalary: string) => {
+      setFilters((prev) => ({
+        ...prev,
+        salaryMin: minSalary,
+        salaryMax: maxSalary,
+      }));
+    },
+    []
+  );
+
+  // Memoize other filter callbacks
+  const updateSearchFilter = useCallback((value: string) => {
+    setFilters((prev) => ({ ...prev, search: value }));
+  }, []);
+
+  const updateStatusFilter = useCallback((statusId: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      status: prev.status.includes(statusId)
+        ? prev.status.filter((s) => s !== statusId)
+        : [...prev.status, statusId],
+    }));
+  }, []);
+
+  const updateLocationFilter = useCallback((location: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      location: prev.location.includes(location)
+        ? prev.location.filter((l) => l !== location)
+        : [...prev.location, location],
+    }));
+  }, []);
+
+  const updateEmploymentTypeFilter = useCallback((type: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      employmentType: prev.employmentType.includes(type)
+        ? prev.employmentType.filter((t) => t !== type)
+        : [...prev.employmentType, type],
+    }));
+  }, []);
+
+  const updateDateFilter = useCallback(
+    (field: "dateFrom" | "dateTo", date: Date | null) => {
+      setFilters((prev) => ({ ...prev, [field]: date }));
+    },
+    []
+  );
+
+  const onFilterChange = useCallback((name: string, value: string) => {
+    setFilters((prev) => ({ ...prev, [name]: value }));
+  }, []);
+
   // Filter states
   const [filters, setFilters] = useState<Filters>({
     search: "",
@@ -124,7 +174,7 @@ const AllJobListings = () => {
     employmentType: [],
     salaryMin: "",
     salaryMax: "",
-    salaryRange: "",
+    // salaryRange: "",
     dateFrom: null,
     dateTo: null,
     skills: [],
@@ -231,7 +281,6 @@ const AllJobListings = () => {
 
   const handleResetFilters = useCallback(() => {
     const queryParam = searchParams.get("query");
-
     setFilters({
       search: queryParam || "",
       status: [],
@@ -240,7 +289,7 @@ const AllJobListings = () => {
       skills: [],
       salaryMin: "",
       salaryMax: "",
-      salaryRange: "",
+      // salaryRange: "",
       dateFrom: null,
       dateTo: null,
     });
@@ -279,7 +328,7 @@ const AllJobListings = () => {
 
           {item.job.salary && (
             <div className="flex items-center text-sm text-muted-foreground">
-              <DollarSign className="h-3 w-3 mr-1 flex-shrink-0" />
+              
               <span>{item.job.salary}</span>
             </div>
           )}
@@ -344,6 +393,10 @@ const AllJobListings = () => {
     </Card>
   );
 
+  function handleSalaryReset(): void {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <>
       <div className="min-h-screen bg-background pt-16 ">
@@ -360,7 +413,7 @@ const AllJobListings = () => {
             <span className="text-sm  mx-4">
               Couldn&apos;t find a job of desired role?{" "}
               <Link
-                href="/profile"
+                href={`/profile/${session?.user?.id}`}
                 className="font-medium text-blue-800 underline hover:text-blue-900 pl-0.5"
               >
                 Please complete your profile
@@ -371,7 +424,7 @@ const AllJobListings = () => {
             <span className="text-sm  mx-4">
               Couldn&apos;t find a job of desired role?{" "}
               <Link
-                href="/profile"
+                href={`/profile/${session?.user?.id}`}
                 className="font-medium text-blue-800 underline hover:text-blue-900 pl-1"
               >
                 Please complete your profile
@@ -381,7 +434,7 @@ const AllJobListings = () => {
             <span className="text-sm  mx-4">
               Couldn&apos;t find a job of desired role?{" "}
               <Link
-                href="/profile"
+                href={`/profile/${session?.user?.id}`}
                 className="font-medium text-blue-800 underline hover:text-blue-900 pl-1"
               >
                 Please complete your profile
@@ -390,7 +443,7 @@ const AllJobListings = () => {
             <span className="text-sm  mx-4">
               Couldn&apos;t find a job of desired role?{" "}
               <Link
-                href="/profile"
+                href={`/profile/${session?.user?.id}`}
                 className="font-medium text-blue-800 underline hover:text-blue-900 pl-1"
               >
                 Please complete your profile
@@ -399,7 +452,7 @@ const AllJobListings = () => {
             <span className="text-sm  mx-4">
               Couldn&apos;t find a job of desired role?{" "}
               <Link
-                href="/profile"
+                href={`/profile/${session?.user?.id}`}
                 className="font-medium text-blue-800 underline hover:text-blue-900 pl-1"
               >
                 Please complete your profile
@@ -431,39 +484,13 @@ const AllJobListings = () => {
               label: type,
             }))}
             loading={loading}
-            updateSearchFilter={(value) =>
-              setFilters((prev) => ({ ...prev, search: value }))
-            }
-            updateStatusFilter={(statusId) =>
-              setFilters((prev) => ({
-                ...prev,
-                status: prev.status.includes(statusId)
-                  ? prev.status.filter((s) => s !== statusId)
-                  : [...prev.status, statusId],
-              }))
-            }
-            updateLocationFilter={(location) =>
-              setFilters((prev) => ({
-                ...prev,
-                location: prev.location.includes(location)
-                  ? prev.location.filter((l) => l !== location)
-                  : [...prev.location, location],
-              }))
-            }
-            updateEmploymentTypeFilter={(type) =>
-              setFilters((prev) => ({
-                ...prev,
-                employmentType: prev.employmentType.includes(type)
-                  ? prev.employmentType.filter((t) => t !== type)
-                  : [...prev.employmentType, type],
-              }))
-            }
-            updateDateFilter={(field, date) =>
-              setFilters((prev) => ({ ...prev, [field]: date }))
-            }
-            onFilterChange={(name, value) =>
-              setFilters((prev) => ({ ...prev, [name]: value }))
-            }
+            updateSearchFilter={updateSearchFilter}
+            updateStatusFilter={updateStatusFilter}
+            updateLocationFilter={updateLocationFilter}
+            updateEmploymentTypeFilter={updateEmploymentTypeFilter}
+            updateDateFilter={updateDateFilter}
+            updateSalaryRangeFilter={handleSalaryRangeChange}
+            onFilterChange={onFilterChange}
             onResetFilters={handleResetFilters}
           />
 
@@ -968,76 +995,10 @@ const AllJobListings = () => {
                       ))}
                     </div>
 
-                    {/* Status Filter */}
-                    {/* <div className="mb-4">
-                      <h3 className="text-sm font-medium mb-2">Status</h3>
-                      {APPLICATION_STATUSES.map((status) => (
-                        <div
-                          key={status.id}
-                          className="flex items-center space-x-2 mb-2"
-                        >
-                          <Checkbox
-                            id={`mobile-status-${status.id}`}
-                            checked={filters.status.includes(status.id)}
-                            onCheckedChange={() =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                status: prev.status.includes(status.id)
-                                  ? prev.status.filter((s) => s !== status.id)
-                                  : [...prev.status, status.id],
-                              }))
-                            }
-                          />
-                          <Label
-                            htmlFor={`mobile-status-${status.id}`}
-                            className="flex items-center text-sm cursor-pointer"
-                          >
-                            <div
-                              className="w-2 h-2 rounded-full mr-2"
-                              style={{
-                                backgroundColor: status.color || "#888888",
-                              }}
-                            />
-                            {status.name}
-                          </Label>
-                        </div>
-                      ))}
-                    </div> */}
-
-                    {/* Salary Range Filter */}
-                    {/* <div className="mb-4">
-                      <h3 className="text-sm font-medium mb-2">Salary Range</h3>
-                      <Select
-                        value={filters.salaryRange || "0"}
-                        onValueChange={(value) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            salaryRange: value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select salary range" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="0">Any Salary</SelectItem>
-                          <SelectItem value="0-50000">$0 - $50,000</SelectItem>
-                          <SelectItem value="50000-75000">
-                            $50,000 - $75,000
-                          </SelectItem>
-                          <SelectItem value="75000-100000">
-                            $75,000 - $100,000
-                          </SelectItem>
-                          <SelectItem value="100000-150000">
-                            $100,000 - $150,000
-                          </SelectItem>
-                          <SelectItem value="150000-200000">
-                            $150,000 - $200,000
-                          </SelectItem>
-                          <SelectItem value="200000+">$200,000+</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div> */}
+                    <SalaryFilter
+                      onSalaryRangeChange={handleSalaryRangeChange}
+                      onReset={handleSalaryReset}
+                    />
 
                     {/* Reset Filters Button */}
                     <Button

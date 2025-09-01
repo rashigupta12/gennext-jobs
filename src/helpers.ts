@@ -138,8 +138,18 @@ export const filterJobs = (
   jobs: { job: JobListing; company: Company; category: Category; subcategory?: Subcategory }[],
   filters: Filters
 ) => {
+  const currentDate = new Date();
+  
   return jobs.filter((item) => {
     const job = item.job;
+
+    // Filter out expired jobs
+    if (job.expiresAt) {
+      const expiresAtDate = new Date(job.expiresAt);
+      if (expiresAtDate < currentDate) {
+        return false; // Skip expired jobs
+      }
+    }
 
     // Search filter
     if (
@@ -198,42 +208,79 @@ export const filterJobs = (
       return false;
     }
 
-    // // Experience level filter
-    // if (
-    //   filters.experienceLevel.length > 0 &&
-    //   !filters.experienceLevel.includes(job.experienceLevel)
-    // ) {
-    //   return false;
-    // }
-
-    // Salary range filter
-    if (filters.salaryRange && job.salary) {
+    // Salary range filter - Updated for new format
+    if ((filters.salaryMin || filters.salaryMax) && job.salary) {
       try {
-        const salary = JSON.parse(job.salary) as Salary;
-        const jobSalaryAvg = (salary.min + salary.max) / 2;
+        // Parse the job salary to extract numeric values
+        const jobSalary = job.salary.trim();
+        let jobMonthlySalary = 0;
 
-        const [minStr, maxStr] = filters.salaryRange.split("-");
-
-        if (maxStr) {
-          // Regular range like "50000-75000"
-          const min = parseInt(minStr);
-          const max = parseInt(maxStr);
-          if (jobSalaryAvg < min || jobSalaryAvg > max) {
-            return false;
+        // Parse different salary formats
+        if (jobSalary.toLowerCase().includes('lpa') || jobSalary.toLowerCase().includes('lakh')) {
+          // Handle LPA format (e.g., "5LPA", "5 LPA")
+          const lpaMatch = jobSalary.match(/(\d+(\.\d+)?)\s*(lpa|lakh|lacs?)/i);
+          if (lpaMatch) {
+            const lpaAmount = parseFloat(lpaMatch[1]);
+            jobMonthlySalary = (lpaAmount * 100000) / 12; // Convert LPA to monthly
           }
-        } else if (minStr.endsWith("+")) {
-          // Range like "200000+"
-          const min = parseInt(minStr.slice(0, -1));
-          if (jobSalaryAvg < min) {
-            return false;
+        } else if (jobSalary.includes('/')) {
+          // Handle monthly/quarterly format (e.g., "Rs. 50,000/month", "50000/quarter")
+          const amountMatch = jobSalary.match(/(\d+(,\d+)*)/);
+          if (amountMatch) {
+            const numericAmount = parseFloat(amountMatch[0].replace(/,/g, ''));
+            
+            if (jobSalary.toLowerCase().includes('/month') || jobSalary.toLowerCase().includes('monthly')) {
+              jobMonthlySalary = numericAmount;
+            } else if (jobSalary.toLowerCase().includes('/quarter') || jobSalary.toLowerCase().includes('quarterly')) {
+              jobMonthlySalary = numericAmount / 3;
+            } else if (jobSalary.toLowerCase().includes('/year') || jobSalary.toLowerCase().includes('yearly')) {
+              jobMonthlySalary = numericAmount / 12;
+            }
           }
-        } else if (minStr === "0") {
-          // "Any Salary" option
-          return true;
+        } else {
+          // Try to extract any numeric value as monthly
+          const numericMatch = jobSalary.match(/\d+/);
+          if (numericMatch) {
+            jobMonthlySalary = parseFloat(numericMatch[0]);
+          }
         }
+
+        // Parse filter values
+        const parseFilterSalary = (salaryStr: string): number => {
+          if (!salaryStr) return 0;
+          
+          if (salaryStr.toLowerCase().includes('lpa')) {
+            const lpaMatch = salaryStr.match(/(\d+(\.\d+)?)\s*lpa/i);
+            if (lpaMatch) {
+              const lpaAmount = parseFloat(lpaMatch[1]);
+              return (lpaAmount * 100000) / 12;
+            }
+          } else {
+            // Extract numeric value from strings like "Rs. 50,000/month"
+            const numericMatch = salaryStr.match(/\d+/);
+            if (numericMatch) {
+              return parseFloat(numericMatch[0]);
+            }
+          }
+          return 0;
+        };
+
+        const minFilterSalary = parseFilterSalary(filters.salaryMin);
+        const maxFilterSalary = parseFilterSalary(filters.salaryMax);
+
+        // Apply filters
+        if (minFilterSalary > 0 && jobMonthlySalary < minFilterSalary) {
+          return false;
+        }
+        if (maxFilterSalary > 0 && jobMonthlySalary > maxFilterSalary) {
+          return false;
+        }
+
       } catch (e) {
-        console.error("Error parsing salary:", e);
-        return false; // Skip this job if salary parsing fails
+        console.error("Error parsing salary:", e, job.salary);
+        // If salary parsing fails, include the job if includeNotDisclosed is true
+        // You might want to add a flag for this in your filters
+        return true;
       }
     }
 
@@ -319,31 +366,31 @@ export const filterApplications = (
     // }
 
     // Salary filters
-    if (filters.salaryRange && app.job.salary) {
-      try {
-        const [minStr, maxStr] = filters.salaryRange.split('-');
-        const salary = JSON.parse(app.job.salary);
-        const jobSalaryAvg = (salary.min + salary.max) / 2;
+    // if (filters.salaryRange && app.job.salary) {
+    //   try {
+    //     const [minStr, maxStr] = filters.salaryRange.split('-');
+    //     const salary = JSON.parse(app.job.salary);
+    //     const jobSalaryAvg = (salary.min + salary.max) / 2;
 
-        if (maxStr) {
-          // Regular range like "50000-75000"
-          const min = parseInt(minStr);
-          const max = parseInt(maxStr);
-          if (jobSalaryAvg < min || jobSalaryAvg > max) {
-            return false;
-          }
-        } else if (minStr.endsWith('+')) {
-          // Range like "200000+"
-          const min = parseInt(minStr.slice(0, -1));
-          if (jobSalaryAvg < min) {
-            return false;
-          }
-        }
-      } catch (e) {
-        console.error("Error parsing salary:", e);
-        return false; // Skip this job if salary parsing fails
-      }
-    }
+    //     if (maxStr) {
+    //       // Regular range like "50000-75000"
+    //       const min = parseInt(minStr);
+    //       const max = parseInt(maxStr);
+    //       if (jobSalaryAvg < min || jobSalaryAvg > max) {
+    //         return false;
+    //       }
+    //     } else if (minStr.endsWith('+')) {
+    //       // Range like "200000+"
+    //       const min = parseInt(minStr.slice(0, -1));
+    //       if (jobSalaryAvg < min) {
+    //         return false;
+    //       }
+    //     }
+    //   } catch (e) {
+    //     console.error("Error parsing salary:", e);
+    //     return false; // Skip this job if salary parsing fails
+    //   }
+    // }
 
     // Date filters
     if (filters.dateFrom || filters.dateTo) {

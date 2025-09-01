@@ -46,6 +46,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+
 import { Award, Briefcase, FileText, Plus, Settings, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useWatch } from "react-hook-form";
@@ -55,6 +56,8 @@ import {
   fetchCompanies,
   fetchSubcategories,
 } from "./JobListingApi";
+import SalaryInputFieldNew from "./Salaryinput";
+import { useToast } from "@/hooks/use-toast";
 
 interface Company {
   id: string;
@@ -142,10 +145,12 @@ const JobListingForm: React.FC = () => {
   const [pendingFormData, setPendingFormData] = useState<any>(null);
 
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
-const [showSubcategoryDialog, setShowSubcategoryDialog] = useState(false);
-const [newCategoryName, setNewCategoryName] = useState("");
-const [newSubcategoryName, setNewSubcategoryName] = useState("");
-const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSubcategoryDialog, setShowSubcategoryDialog] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newSubcategoryName, setNewSubcategoryName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const {toast} = useToast();
+  
   // Get the session object
   const session = useSession();
   const userId = session?.data?.user?.id;
@@ -171,7 +176,7 @@ const [isSubmitting, setIsSubmitting] = useState(false);
       skills: [],
       role: "",
       department: "",
-      employmentType: "FULL_TIME",
+      employmentType: "FULL_TIME" as const,
       education: "",
       isFeatured: false,
       isActive: true,
@@ -180,12 +185,14 @@ const [isSubmitting, setIsSubmitting] = useState(false);
     },
   });
 
-  // For array fields (highlights, qualifications, skills)
-  const [newHighlight, setNewHighlight] = useState("");
-  const [newQualification, setNewQualification] = useState("");
-  const [newSkill, setNewSkill] = useState("");
+  // For array fields (highlights, qualifications, skills) - Use controlled state
+  const [arrayInputs, setArrayInputs] = useState({
+    highlights: "",
+    qualifications: "",
+    skills: ""
+  });
 
-  // Fetch companies on component mount
+  // Watch categoryId for subcategory loading
   const categoryId = useWatch({ control: form.control, name: "categoryId" });
   
   useEffect(() => {
@@ -212,6 +219,11 @@ const [isSubmitting, setIsSubmitting] = useState(false);
         }
       } catch (error) {
         setError("Failed to load initial data.");
+        toast({
+          title: "Error",
+          description: "Failed to load initial data.",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -222,6 +234,7 @@ const [isSubmitting, setIsSubmitting] = useState(false);
     }
   }, [session?.data?.user?.id, form, userId]);
 
+  // Load subcategories when category changes
   useEffect(() => {
     if (!categoryId) {
       setSubcategories([]);
@@ -236,9 +249,13 @@ const [isSubmitting, setIsSubmitting] = useState(false);
       try {
         const fetchedSubcategories = await fetchSubcategories(categoryId);
         setSubcategories(fetchedSubcategories || []);
-        setIsLoading(false);
       } catch (error) {
         setError("Failed to load subcategories.");
+        toast({
+          title: "Error",
+          description: "Failed to load subcategories.",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -247,17 +264,21 @@ const [isSubmitting, setIsSubmitting] = useState(false);
     loadSubcategories(categoryId);
   }, [categoryId, form]);
 
-  // Function to add item to array field
+  // Function to add item to array field - Fixed to prevent input clearing issues
   const addItemToArray = (
     fieldName: "highlights" | "qualifications" | "skills",
-    value: string,
-    setterFunction: React.Dispatch<React.SetStateAction<string>>
+    value: string
   ) => {
     if (!value.trim()) return;
 
     const currentArray = form.getValues(fieldName) || [];
     form.setValue(fieldName, [...currentArray, value.trim()]);
-    setterFunction("");
+    
+    // Clear the input using controlled state
+    setArrayInputs(prev => ({
+      ...prev,
+      [fieldName]: ""
+    }));
   };
 
   // Function to remove item from array field
@@ -307,122 +328,160 @@ const [isSubmitting, setIsSubmitting] = useState(false);
 
       if (!response.ok) {
         const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to create job listing",
+          variant: "destructive",
+        });
         return;
       }
 
       const result = await response.json();
-      alert("Job listing created successfully!");
+      toast({
+        title: "Success",
+        description: "Job listing created successfully!",
+      });
       form.reset();
+      // Reset array inputs as well
+      setArrayInputs({
+        highlights: "",
+        qualifications: "",
+        skills: ""
+      });
     } catch (error) {
       console.error("Error submitting form:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
     } finally {
       setShowConfirmDialog(false);
       setPendingFormData(null);
     }
   };
 
-const handleCreateCategory = async () => {
-  if (!newCategoryName.trim()) return;
-  
-  setIsSubmitting(true);
-  try {
-    const response = await fetch("/api/categories", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: newCategoryName.trim()
-      }),
-    });
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/categories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: newCategoryName.trim()
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to create category');
+      if (!response.ok) {
+        throw new Error('Failed to create category');
+      }
+
+      const newCategory = await response.json();
+      setCategories(prev => [...prev, newCategory]);
+      
+      // Set the newly created category as selected
+      form.setValue("categoryId", newCategory.id);
+      
+      setNewCategoryName("");
+      setShowCategoryDialog(false);
+      
+      toast({
+        title: "Success",
+        description: "Category created successfully!",
+      });
+    } catch (error) {
+      console.error('Error creating category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create category",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
+  };
 
-    const newCategory = await response.json();
-    setCategories(prev => [...prev, newCategory]);
+  const handleCreateSubcategory = async () => {
+    if (!newSubcategoryName.trim() || !form.watch("categoryId")) return;
     
-    // Set the newly created category as selected
-    form.setValue("categoryId", newCategory.id);
-    
-    setNewCategoryName("");
-    setShowCategoryDialog(false);
-  } catch (error) {
-    console.error('Error creating category:', error);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/subCategories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: newSubcategoryName.trim(),
+          categoryId: form.watch("categoryId")
+        }),
+      });
 
-const handleCreateSubcategory = async () => {
-  if (!newSubcategoryName.trim() || !form.watch("categoryId")) return;
-  
-  setIsSubmitting(true);
-  try {
-    const response = await fetch("/api/subCategories", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: newSubcategoryName.trim(),
-        categoryId: form.watch("categoryId")
-      }),
-    });
+      if (!response.ok) {
+        throw new Error('Failed to create subcategory');
+      }
 
-    if (!response.ok) {
-      throw new Error('Failed to create subcategory');
+      const newSubcategory = await response.json();
+      setSubcategories(prev => [...prev, newSubcategory]);
+      
+      // Set the newly created subcategory as selected
+      form.setValue("subcategoryId", newSubcategory.id);
+      
+      setNewSubcategoryName("");
+      setShowSubcategoryDialog(false);
+      
+      toast({
+        title: "Success",
+        description: "Subcategory created successfully!",
+      });
+    } catch (error) {
+      console.error('Error creating subcategory:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create subcategory",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
+  };
 
-    const newSubcategory = await response.json();
-    setSubcategories(prev => [...prev, newSubcategory]);
-    
-    // Set the newly created subcategory as selected
-    form.setValue("subcategoryId", newSubcategory.id);
-    
-    setNewSubcategoryName("");
-    setShowSubcategoryDialog(false);
-  } catch (error) {
-    console.error('Error creating subcategory:', error);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-  // Array field component
+  // Fixed Array field component with controlled inputs
   const ArrayFieldSection = ({ 
     title, 
     fieldName, 
-    placeholder, 
-    newValue, 
-    setNewValue 
+    placeholder
   }: {
     title: string;
     fieldName: "highlights" | "qualifications" | "skills";
     placeholder: string;
-    newValue: string;
-    setNewValue: React.Dispatch<React.SetStateAction<string>>;
   }) => (
     <div className="space-y-3">
       <FormLabel className="text-sm font-medium">{title}</FormLabel>
       <div className="flex gap-2">
         <Input
-          value={newValue}
-          onChange={(e) => setNewValue(e.target.value)}
+          value={arrayInputs[fieldName]}
+          onChange={(e) => setArrayInputs(prev => ({
+            ...prev,
+            [fieldName]: e.target.value
+          }))}
           placeholder={placeholder}
           className="flex-1"
           onKeyPress={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
-              addItemToArray(fieldName, newValue, setNewValue);
+              addItemToArray(fieldName, arrayInputs[fieldName]);
             }
           }}
         />
         <Button
           type="button"
           size="sm"
-          onClick={() => addItemToArray(fieldName, newValue, setNewValue)}
+          onClick={() => addItemToArray(fieldName, arrayInputs[fieldName])}
         >
           <Plus className="h-4 w-4" />
         </Button>
@@ -430,7 +489,7 @@ const handleCreateSubcategory = async () => {
       <div className="space-y-2 max-h-32 overflow-y-auto">
         {form.watch(fieldName)?.map((item, index) => (
           <div
-            key={index}
+            key={`${fieldName}-${index}-${item}`}
             className="flex items-center bg-slate-50 p-2 rounded text-sm"
           >
             <span className="flex-1">{item}</span>
@@ -542,20 +601,31 @@ const handleCreateSubcategory = async () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Category*</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a category" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {categories.map((category) => (
-                                <SelectItem key={category.id} value={category.id}>
-                                  {category.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <div className="flex gap-2">
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="flex-1">
+                                  <SelectValue placeholder="Select a category" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {categories.map((category) => (
+                                  <SelectItem key={`category-${category.id}`} value={category.id}>
+                                    {category.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowCategoryDialog(true)}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -566,42 +636,54 @@ const handleCreateSubcategory = async () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Subcategory</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            disabled={!form.watch("categoryId") || isLoading}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue
-                                  placeholder={
-                                    form.watch("categoryId")
-                                      ? isLoading
-                                        ? "Loading..."
-                                        : subcategories.length > 0
-                                        ? "Select a subcategory"
-                                        : "No subcategories available"
-                                      : "Select a category first"
-                                  }
-                                />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {subcategories.length > 0 ? (
-                                subcategories.map((subcategory) => (
-                                  <SelectItem key={subcategory.id} value={subcategory.id}>
-                                    {subcategory.name}
+                          <div className="flex gap-2">
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              disabled={!form.watch("categoryId") || isLoading}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="flex-1">
+                                  <SelectValue
+                                    placeholder={
+                                      form.watch("categoryId")
+                                        ? isLoading
+                                          ? "Loading..."
+                                          : subcategories.length > 0
+                                          ? "Select a subcategory"
+                                          : "No subcategories available"
+                                        : "Select a category first"
+                                    }
+                                  />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {subcategories.length > 0 ? (
+                                  subcategories.map((subcategory) => (
+                                    <SelectItem key={`subcategory-${subcategory.id}`} value={subcategory.id}>
+                                      {subcategory.name}
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem key="none-subcategory" value="none" disabled>
+                                    {form.watch("categoryId")
+                                      ? "No subcategories available"
+                                      : "Select a category first"}
                                   </SelectItem>
-                                ))
-                              ) : (
-                                <SelectItem value="none" disabled>
-                                  {form.watch("categoryId")
-                                    ? "No subcategories available"
-                                    : "Select a category first"}
-                                </SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowSubcategoryDialog(true)}
+                              disabled={!form.watch("categoryId")}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -665,7 +747,7 @@ const handleCreateSubcategory = async () => {
                       )}
                     />
 
-                    <SalaryInputField form={form} name="salary"/>
+                    <SalaryInputFieldNew form={form} name="salary"/>
 
                     <FormField
                       control={form.control}
@@ -764,22 +846,16 @@ const handleCreateSubcategory = async () => {
                         title="Highlights"
                         fieldName="highlights"
                         placeholder="Add a key highlight"
-                        newValue={newHighlight}
-                        setNewValue={setNewHighlight}
                       />
                       <ArrayFieldSection
                         title="Qualifications"
                         fieldName="qualifications"
                         placeholder="Add a qualification"
-                        newValue={newQualification}
-                        setNewValue={setNewQualification}
                       />
                       <ArrayFieldSection
                         title="Skills"
                         fieldName="skills"
                         placeholder="Add a required skill"
-                        newValue={newSkill}
-                        setNewValue={setNewSkill}
                       />
                     </div>
 
@@ -895,95 +971,97 @@ const handleCreateSubcategory = async () => {
                         />
 
                         <FormField
-  control={form.control}
-  name="categoryId"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Category*</FormLabel>
-      <div className="flex gap-2">
-        <Select onValueChange={field.onChange} defaultValue={field.value}>
-          <FormControl>
-            <SelectTrigger className="flex-1">
-              <SelectValue placeholder="Select a category" />
-            </SelectTrigger>
-          </FormControl>
-          <SelectContent>
-            {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                {category.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setShowCategoryDialog(true)}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-    </FormItem>
-  )}
-/>
+                          control={form.control}
+                          name="categoryId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Category*</FormLabel>
+                              <div className="flex gap-2">
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger className="flex-1">
+                                      <SelectValue placeholder="Select a category" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {categories.map((category) => (
+                                      <SelectItem key={`mobile-category-${category.id}`} value={category.id}>
+                                        {category.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setShowCategoryDialog(true)}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
                         <FormField
-  control={form.control}
-  name="subcategoryId"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Subcategory</FormLabel>
-      <div className="flex gap-2">
-        <Select
-          onValueChange={field.onChange}
-          value={field.value}
-          disabled={!form.watch("categoryId") || isLoading}
-        >
-          <FormControl>
-            <SelectTrigger className="flex-1">
-              <SelectValue
-                placeholder={
-                  form.watch("categoryId")
-                    ? isLoading
-                      ? "Loading..."
-                      : subcategories.length > 0
-                      ? "Select a subcategory"
-                      : "No subcategories available"
-                    : "Select a category first"
-                }
-              />
-            </SelectTrigger>
-          </FormControl>
-          <SelectContent>
-            {subcategories.length > 0 ? (
-              subcategories.map((subcategory) => (
-                <SelectItem key={subcategory.id} value={subcategory.id}>
-                  {subcategory.name}
-                </SelectItem>
-              ))
-            ) : (
-              <SelectItem value="none" disabled>
-                {form.watch("categoryId")
-                  ? "No subcategories available"
-                  : "Select a category first"}
-              </SelectItem>
-            )}
-          </SelectContent>
-        </Select>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setShowSubcategoryDialog(true)}
-          disabled={!form.watch("categoryId")}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-    </FormItem>
-  )}
-/>
+                          control={form.control}
+                          name="subcategoryId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Subcategory</FormLabel>
+                              <div className="flex gap-2">
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value}
+                                  disabled={!form.watch("categoryId") || isLoading}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger className="flex-1">
+                                      <SelectValue
+                                        placeholder={
+                                          form.watch("categoryId")
+                                            ? isLoading
+                                              ? "Loading..."
+                                              : subcategories.length > 0
+                                              ? "Select a subcategory"
+                                              : "No subcategories available"
+                                            : "Select a category first"
+                                        }
+                                      />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {subcategories.length > 0 ? (
+                                      subcategories.map((subcategory) => (
+                                        <SelectItem key={`mobile-subcategory-${subcategory.id}`} value={subcategory.id}>
+                                          {subcategory.name}
+                                        </SelectItem>
+                                      ))
+                                    ) : (
+                                      <SelectItem key="mobile-none-subcategory" value="none" disabled>
+                                        {form.watch("categoryId")
+                                          ? "No subcategories available"
+                                          : "Select a category first"}
+                                      </SelectItem>
+                                    )}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setShowSubcategoryDialog(true)}
+                                  disabled={!form.watch("categoryId")}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       </AccordionContent>
                     </AccordionItem>
 
@@ -1054,7 +1132,7 @@ const handleCreateSubcategory = async () => {
                           )}
                         />
 
-                        <SalaryInputField form={form} name="salary"/>
+                        <SalaryInputFieldNew form={form} name="salary"/>
 
                         <FormField
                           control={form.control}
@@ -1171,22 +1249,16 @@ const handleCreateSubcategory = async () => {
                           title="Highlights"
                           fieldName="highlights"
                           placeholder="Add a key highlight"
-                          newValue={newHighlight}
-                          setNewValue={setNewHighlight}
                         />
                         <ArrayFieldSection
                           title="Qualifications"
                           fieldName="qualifications"
                           placeholder="Add a qualification"
-                          newValue={newQualification}
-                          setNewValue={setNewQualification}
                         />
                         <ArrayFieldSection
                           title="Skills"
                           fieldName="skills"
                           placeholder="Add a required skill"
-                          newValue={newSkill}
-                          setNewValue={setNewSkill}
                         />
                       </AccordionContent>
                     </AccordionItem>
@@ -1281,88 +1353,88 @@ const handleCreateSubcategory = async () => {
       </AlertDialog>
 
       {/* Category Dialog */}
-<AlertDialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>Add New Category</AlertDialogTitle>
-      <AlertDialogDescription>
-        Create a new job category that will be available for all job listings.
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <div className="py-4">
-      <Input
-        placeholder="Enter category name"
-        value={newCategoryName}
-        onChange={(e) => setNewCategoryName(e.target.value)}
-        onKeyPress={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            handleCreateCategory();
-          }
-        }}
-      />
-    </div>
-    <AlertDialogFooter>
-      <AlertDialogCancel 
-        onClick={() => {
-          setShowCategoryDialog(false);
-          setNewCategoryName("");
-        }}
-        disabled={isSubmitting}
-      >
-        Cancel
-      </AlertDialogCancel>
-      <AlertDialogAction 
-        onClick={handleCreateCategory}
-        disabled={!newCategoryName.trim() || isSubmitting}
-      >
-        {isSubmitting ? "Creating..." : "Create Category"}
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
+      <AlertDialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Add New Category</AlertDialogTitle>
+            <AlertDialogDescription>
+              Create a new job category that will be available for all job listings.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Input
+              placeholder="Enter category name"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleCreateCategory();
+                }
+              }}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                setShowCategoryDialog(false);
+                setNewCategoryName("");
+              }}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleCreateCategory}
+              disabled={!newCategoryName.trim() || isSubmitting}
+            >
+              {isSubmitting ? "Creating..." : "Create Category"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-{/* Subcategory Dialog */}
-<AlertDialog open={showSubcategoryDialog} onOpenChange={setShowSubcategoryDialog}>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>Add New Subcategory</AlertDialogTitle>
-      <AlertDialogDescription>
-        Create a new subcategory for &quot;{categories.find(c => c.id === form.watch("categoryId"))?.name || 'selected category'}&quot;.
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <div className="py-4">
-      <Input
-        placeholder="Enter subcategory name"
-        value={newSubcategoryName}
-        onChange={(e) => setNewSubcategoryName(e.target.value)}
-        onKeyPress={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            handleCreateSubcategory();
-          }
-        }}
-      />
-    </div>
-    <AlertDialogFooter>
-      <AlertDialogCancel 
-        onClick={() => {
-          setShowSubcategoryDialog(false);
-          setNewSubcategoryName("");
-        }}
-        disabled={isSubmitting}
-      >
-        Cancel
-      </AlertDialogCancel>
-      <AlertDialogAction 
-        onClick={handleCreateSubcategory}
-        disabled={!newSubcategoryName.trim() || isSubmitting}
-      >
-        {isSubmitting ? "Creating..." : "Create Subcategory"}
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
+      {/* Subcategory Dialog */}
+      <AlertDialog open={showSubcategoryDialog} onOpenChange={setShowSubcategoryDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Add New Subcategory</AlertDialogTitle>
+            <AlertDialogDescription>
+              Create a new subcategory for &quot;{categories.find(c => c.id === form.watch("categoryId"))?.name || 'selected category'}&quot;.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Input
+              placeholder="Enter subcategory name"
+              value={newSubcategoryName}
+              onChange={(e) => setNewSubcategoryName(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleCreateSubcategory();
+                }
+              }}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                setShowSubcategoryDialog(false);
+                setNewSubcategoryName("");
+              }}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleCreateSubcategory}
+              disabled={!newSubcategoryName.trim() || isSubmitting}
+            >
+              {isSubmitting ? "Creating..." : "Create Subcategory"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

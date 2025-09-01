@@ -299,21 +299,22 @@ const scrollToFirstError = async () => {
       .join("|");
   };
 
-  const formatExperienceForDB = (entries: ExperienceEntry[]): string => {
-    return entries
-      .filter(
-        (entry) =>
-          entry.company ||
-          entry.role ||
-          entry.duration ||
-          entry.responsibilities
-      )
-      .map(
-        (entry) =>
-          `${entry.company},${entry.role},${entry.duration},${entry.responsibilities}`
-      )
-      .join("|");
-  };
+ // Update the formatExperienceForDB function:
+const formatExperienceForDB = (entries: ExperienceEntry[]): string => {
+  return entries
+    .filter(
+      (entry) =>
+        entry.company ||
+        entry.role ||
+        entry.duration ||
+        entry.responsibilities
+    )
+    .map(
+      (entry) =>
+        `${entry.company || ""},${entry.role || ""},${entry.duration || ""},${entry.responsibilities || ""}`
+    )
+    .join("|");
+};
 
   // Education handlers
   const addEducationEntry = () => {
@@ -497,7 +498,6 @@ const scrollToFirstError = async () => {
 
     fetchData();
   }, [session?.user?.id, jobId, id, status]);
-
 const onSubmit: SubmitHandler<FormValues> = async (data) => {
   console.log("Form submission started with data:", data);
 
@@ -507,7 +507,6 @@ const onSubmit: SubmitHandler<FormValues> = async (data) => {
   }
 
   setIsSubmitting(true);
-  // let hasCustomErrors = false;
 
   try {
     // Clear any existing errors first
@@ -544,15 +543,41 @@ const onSubmit: SubmitHandler<FormValues> = async (data) => {
     }
 
     // Custom validation for education
-    const formattedEducation = formatEducationForDB(educationEntries);
-    if (!formattedEducation) {
-      console.log("Education validation failed");
+    const hasValidEducation = educationEntries.some(entry => 
+      entry.college.trim() || entry.degree.trim() || entry.batch.trim()
+    );
+    
+    if (!hasValidEducation) {
       form.setError("education", { 
         type: "required", 
         message: "Please fill in at least one education entry." 
       });
       
       toast.error("Please fill in at least one education entry.");
+      
+      if (educationRef.current) {
+        educationRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => window.scrollBy(0, -80), 600);
+      }
+      
+      setIsSubmitting(false);
+      return;
+    }
+    
+    // Check if any education entry has incomplete required fields
+    const hasIncompleteEducation = educationEntries.some(entry => {
+      const hasAnyField = entry.college.trim() || entry.degree.trim() || entry.batch.trim();
+      const hasAllRequiredFields = entry.college.trim() && entry.degree.trim() && entry.batch.trim();
+      return hasAnyField && !hasAllRequiredFields;
+    });
+    
+    if (hasIncompleteEducation) {
+      form.setError("education", { 
+        type: "validation", 
+        message: "Please complete all fields for each education entry or remove incomplete entries." 
+      });
+      
+      toast.error("Please complete all fields for each education entry.");
       
       if (educationRef.current) {
         educationRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -585,7 +610,8 @@ const onSubmit: SubmitHandler<FormValues> = async (data) => {
     // If we reach here, validation passed
     console.log("All validations passed, proceeding with submission");
     
-    // Continue with your existing submission logic...
+    // Format education and experience for database
+    const formattedEducation = formatEducationForDB(educationEntries);
     const formattedExperience = formatExperienceForDB(experienceEntries);
 
     const formData = new FormData();
@@ -1333,68 +1359,68 @@ const validateResumeField = (): boolean => {
     </div>
   )}
 
-  {!hasApplied && (
-    <div className="mt-4">
-      <FormField
-        control={form.control}
-        name="resume"
-        render={({ field: { onChange, ...field } }) => (
-          <FormItem>
-            <FormLabel className="text-sm font-medium text-gray-700">
-              {resumeUploaded ? "Update Resume *" : "Upload Resume *"}
-            </FormLabel>
-            <FormControl>
-              <div className="mt-2">
-                {isUploading ? (
-                  <div className="flex items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                    <span className="ml-2 text-gray-600">Uploading...</span>
-                  </div>
-                ) : (
-                  <UploadDropzone
-                    endpoint="docUploader"
-                    onBeforeUploadBegin={(files) => {
-                      setIsUploading(true);
-                      return files;
-                    }}
-                    onClientUploadComplete={(res) => {
-                      if (res && res.length > 0) {
-                        const fileUrl = res[0].serverData.fileUrl;
-                        const uploadedFileName = res[0].name;
-                        setResumeUrl(fileUrl);
-                        setFileName(uploadedFileName);
-                        setResumeUploaded(true);
-                        onChange(fileUrl);
-
-                        // Clear any existing resume error
-                        form.clearErrors("resume");
-
-                        toast.success("Resume uploaded successfully");
-                      }
-                      setIsUploading(false);
-                    }}
-                    onUploadError={(error: Error) => {
-                      console.error("Upload error:", error);
-                      setFetchError("Failed to upload resume. Please try again.");
-                      setIsUploading(false);
-                      toast.error("Failed to upload resume. Please try again.");
-                    }}
-                    className="ut-button:bg-blue-600 ut-button:hover:bg-blue-700"
-                  />
-                )}
-              </div>
-            </FormControl>
-            <FormDescription className="text-gray-600">
-              {resumeUploaded
-                ? "Upload a new file to replace your current resume (PDF preferred) - Required"
-                : "Upload your resume (PDF preferred) - Required"}
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-    </div>
-  )}
+{!hasApplied && (
+  <div className="mt-4">
+    <FormField
+      control={form.control}
+      name="resume"
+      render={({ field: { onChange, ...field } }) => (
+        <FormItem>
+          <FormLabel className="text-sm font-medium text-gray-700">
+            {resumeUploaded ? "Update Resume *" : "Upload Resume *"}
+          </FormLabel>
+          <FormControl>
+            <div className="mt-2">
+              {isUploading ? (
+                <div className="flex items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                  <span className="ml-2 text-gray-600">Uploading...</span>
+                </div>
+              ) : (
+                <UploadDropzone
+                  endpoint="docUploader"
+                  onBeforeUploadBegin={(files) => {
+                    setIsUploading(true);
+                    return files;
+                  }}
+                  onClientUploadComplete={(res) => {
+                    if (res && res.length > 0) {
+                      const fileUrl = res[0].serverData.fileUrl;
+                      const uploadedFileName = res[0].name;
+                      setResumeUrl(fileUrl);
+                      setFileName(uploadedFileName);
+                      setResumeUploaded(true);
+                      onChange(fileUrl);
+                      
+                      // Clear any existing resume error
+                      form.clearErrors("resume");
+                      
+                      toast.success("Resume uploaded successfully");
+                    }
+                    setIsUploading(false);
+                  }}
+                  onUploadError={(error: Error) => {
+                    console.error("Upload error:", error);
+                    setFetchError("Failed to upload resume. Please try again.");
+                    setIsUploading(false);
+                    toast.error("Failed to upload resume. Please try again.");
+                  }}
+                  className="ut-button:bg-blue-600 ut-button:hover:bg-blue-700"
+                />
+              )}
+            </div>
+          </FormControl>
+          <FormDescription className="text-gray-600">
+            {resumeUploaded
+              ? "Upload a new file to replace your current resume (PDF preferred) - Required"
+              : "Upload your resume (PDF preferred) - Required"}
+          </FormDescription>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  </div>
+)}
 </div>
 
                       {/* Cover Letter Section */}

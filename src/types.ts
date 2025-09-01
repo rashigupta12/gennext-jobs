@@ -122,18 +122,15 @@ export interface JobApplicationView {
 }
 
 export interface Filters {
-  skills: string[];
-  
-  salaryMin: string | number | readonly string[] | undefined;
-  salaryMax: string | number | readonly string[] | undefined;
   search: string;
   status: string[];
   location: string[];
   employmentType: string[];
+  salaryMin: string; // Changed from salaryRange
+  salaryMax: string; // New field
   dateFrom: Date | null;
   dateTo: Date | null;
-  salaryRange: string;
-
+  skills: string[];
 }
 
 export const APPLICATION_STATUSES: ApplicationStatus[] = [

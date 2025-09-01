@@ -60,7 +60,7 @@ export default function Dashboard() {
     employmentType: [],
     salaryMin: "",
     salaryMax: "",
-    salaryRange: "",
+    
     dateFrom: null,
     dateTo: null,
     skills: [],
@@ -90,12 +90,12 @@ export default function Dashboard() {
 
         const jobApplications = await fetchJobApplications(userId);
         
-        if (jobApplications.length === 0) {
-          setApplications([]);
-          setLoading(false);
-          window.location.href = "/jobs";
-          return;
-        }
+        // if (jobApplications.length === 0) {
+        //   setApplications([]);
+        //   setLoading(false);
+        //   window.location.href = "/jobs";
+        //   return;
+        // }
 
         const jobIds = jobApplications.map((app) => app.jobId);
         const jobsData: JobListing[] = await fetchJobDetails(jobIds);
@@ -180,7 +180,6 @@ export default function Dashboard() {
       employmentType: [],
       salaryMin: "",
       salaryMax: "",
-      salaryRange: "",
       dateFrom: null,
       dateTo: null,
       skills: [],

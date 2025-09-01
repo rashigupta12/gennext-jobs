@@ -30,7 +30,7 @@ import {
   Building,
   Plus,
   X,
-  Target
+  Target,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
@@ -83,48 +83,50 @@ const ProfilePage = () => {
   const [user, setUser] = useState<User | null>(null);
   const [resume, setResume] = useState<Resume | null>(null);
   const [formData, setFormData] = useState<ProfileFormData>({
-  resumeUrl: "",
-  experience: "",
-  skills: "",
-  education: "",
-  position: "",
-  mobile: "",
-});
+    resumeUrl: "",
+    experience: "",
+    skills: "",
+    education: "",
+    position: "",
+    mobile: "",
+  });
 
   // Multiple education entries
   const [educationEntries, setEducationEntries] = useState<EducationEntry[]>([
-    { college: "", degree: "", batch: "" }
+    { college: "", degree: "", batch: "" },
   ]);
 
   // Multiple experience entries
-  const [experienceEntries, setExperienceEntries] = useState<ExperienceEntry[]>([
-    { company: "", role: "", duration: "", responsibilities: "" }
-  ]);
+  const [experienceEntries, setExperienceEntries] = useState<ExperienceEntry[]>(
+    [{ company: "", role: "", duration: "", responsibilities: "" }]
+  );
 
   // Helper function to clean text content (remove quotes and parse JSON if needed)
   const cleanTextContent = (text: string | null | undefined): string => {
     if (!text) return "";
-    
+
     // Convert to string if it's not already
     let cleanText = String(text);
-    
+
     // Remove leading/trailing quotes
-    if ((cleanText.startsWith('"') && cleanText.endsWith('"')) || 
-        (cleanText.startsWith("'") && cleanText.endsWith("'"))) {
+    if (
+      (cleanText.startsWith('"') && cleanText.endsWith('"')) ||
+      (cleanText.startsWith("'") && cleanText.endsWith("'"))
+    ) {
       cleanText = cleanText.slice(1, -1);
     }
-    
+
     // Try to parse as JSON if it looks like JSON
-    if (cleanText.startsWith('{') || cleanText.startsWith('[')) {
+    if (cleanText.startsWith("{") || cleanText.startsWith("[")) {
       try {
         const parsed = JSON.parse(cleanText);
-        return typeof parsed === 'string' ? parsed : JSON.stringify(parsed);
+        return typeof parsed === "string" ? parsed : JSON.stringify(parsed);
       } catch (e) {
         // If parsing fails, return the cleaned text
         return cleanText;
       }
     }
-    
+
     return cleanText;
   };
 
@@ -132,17 +134,17 @@ const ProfilePage = () => {
   const parseEducationData = (educationString: string): EducationEntry[] => {
     const cleanedString = cleanTextContent(educationString);
     if (!cleanedString) return [{ college: "", degree: "", batch: "" }];
-    
+
     try {
-      const entries = cleanedString.split('|').filter(entry => entry.trim());
+      const entries = cleanedString.split("|").filter((entry) => entry.trim());
       if (entries.length === 0) return [{ college: "", degree: "", batch: "" }];
-      
-      return entries.map(entry => {
-        const parts = entry.split(',').map(part => part.trim());
+
+      return entries.map((entry) => {
+        const parts = entry.split(",").map((part) => part.trim());
         return {
           college: parts[0] || "",
           degree: parts[1] || "",
-          batch: parts[2] || ""
+          batch: parts[2] || "",
         };
       });
     } catch (e) {
@@ -153,19 +155,21 @@ const ProfilePage = () => {
   // Function to parse experience data from comma-separated format
   const parseExperienceData = (experienceString: string): ExperienceEntry[] => {
     const cleanedString = cleanTextContent(experienceString);
-    if (!cleanedString) return [{ company: "", role: "", duration: "", responsibilities: "" }];
-    
+    if (!cleanedString)
+      return [{ company: "", role: "", duration: "", responsibilities: "" }];
+
     try {
-      const entries = cleanedString.split('|').filter(entry => entry.trim());
-      if (entries.length === 0) return [{ company: "", role: "", duration: "", responsibilities: "" }];
-      
-      return entries.map(entry => {
-        const parts = entry.split(',').map(part => part.trim());
+      const entries = cleanedString.split("|").filter((entry) => entry.trim());
+      if (entries.length === 0)
+        return [{ company: "", role: "", duration: "", responsibilities: "" }];
+
+      return entries.map((entry) => {
+        const parts = entry.split(",").map((part) => part.trim());
         return {
           company: parts[0] || "",
           role: parts[1] || "",
           duration: parts[2] || "",
-          responsibilities: parts[3] || ""
+          responsibilities: parts[3] || "",
         };
       });
     } catch (e) {
@@ -176,39 +180,54 @@ const ProfilePage = () => {
   // Function to convert education entries to comma-separated format
   const formatEducationForDB = (entries: EducationEntry[]): string => {
     return entries
-      .filter(entry => entry.college.trim() || entry.degree.trim() || entry.batch.trim())
-      .map(entry => `${entry.college.trim()},${entry.degree.trim()},${entry.batch.trim()}`)
-      .join('|');
+      .filter(
+        (entry) =>
+          entry.college.trim() || entry.degree.trim() || entry.batch.trim()
+      )
+      .map(
+        (entry) =>
+          `${entry.college.trim()},${entry.degree.trim()},${entry.batch.trim()}`
+      )
+      .join("|");
   };
 
   // Function to convert experience entries to comma-separated format
   const formatExperienceForDB = (entries: ExperienceEntry[]): string => {
     return entries
-      .filter(entry => entry.company.trim() || entry.role.trim() || entry.duration.trim() || entry.responsibilities.trim())
-      .map(entry => `${entry.company.trim()},${entry.role.trim()},${entry.duration.trim()},${entry.responsibilities.trim()}`)
-      .join('|');
+      .filter(
+        (entry) =>
+          entry.company.trim() ||
+          entry.role.trim() ||
+          entry.duration.trim() ||
+          entry.responsibilities.trim()
+      )
+      .map(
+        (entry) =>
+          `${entry.company.trim()},${entry.role.trim()},${entry.duration.trim()},${entry.responsibilities.trim()}`
+      )
+      .join("|");
   };
 
   // Function to parse and clean skills
   const parseSkills = (skillsString: string): string[] => {
     const cleanedString = cleanTextContent(skillsString);
     if (!cleanedString) return [];
-    
+
     return cleanedString
-      .split(',')
-      .map(skill => skill.trim())
-      .filter(skill => skill.length > 0); // Remove empty strings
+      .split(",")
+      .map((skill) => skill.trim())
+      .filter((skill) => skill.length > 0); // Remove empty strings
   };
 
   // Function to parse and clean positions (same as skills)
   const parsePositions = (positionsString: string): string[] => {
     const cleanedString = cleanTextContent(positionsString);
     if (!cleanedString) return [];
-    
+
     return cleanedString
-      .split(',')
-      .map(position => position.trim())
-      .filter(position => position.length > 0); // Remove empty strings
+      .split(",")
+      .map((position) => position.trim())
+      .filter((position) => position.length > 0); // Remove empty strings
   };
 
   // Function to fetch user data
@@ -238,28 +257,45 @@ const ProfilePage = () => {
             experience: cleanTextContent(fetchedResume.experience),
             education: cleanTextContent(fetchedResume.education),
             skills: cleanTextContent(fetchedResume.skills),
-            position: cleanTextContent(fetchedResume.position)
+            position: cleanTextContent(fetchedResume.position),
           };
 
           setResume(cleanedResume);
           setFormData({
-  resumeUrl: cleanedResume.resumeUrl || "",
-  experience: cleanedResume.experience || "",
-  skills: cleanedResume.skills || "",
-  education: cleanedResume.education || "",
-  position: cleanedResume.position || "",
-  mobile: userData.data.mobile || "", // Add this
-});
+            resumeUrl: cleanedResume.resumeUrl || "",
+            experience: cleanedResume.experience || "",
+            skills: cleanedResume.skills || "",
+            education: cleanedResume.education || "",
+            position: cleanedResume.position || "",
+            mobile: userData.data.mobile || "", // Add this
+          });
 
           // Parse education and experience data
           if (cleanedResume.education) {
             const parsedEducation = parseEducationData(cleanedResume.education);
-            setEducationEntries(parsedEducation.length > 0 ? parsedEducation : [{ college: "", degree: "", batch: "" }]);
+            setEducationEntries(
+              parsedEducation.length > 0
+                ? parsedEducation
+                : [{ college: "", degree: "", batch: "" }]
+            );
           }
 
           if (cleanedResume.experience) {
-            const parsedExperience = parseExperienceData(cleanedResume.experience);
-            setExperienceEntries(parsedExperience.length > 0 ? parsedExperience : [{ company: "", role: "", duration: "", responsibilities: "" }]);
+            const parsedExperience = parseExperienceData(
+              cleanedResume.experience
+            );
+            setExperienceEntries(
+              parsedExperience.length > 0
+                ? parsedExperience
+                : [
+                    {
+                      company: "",
+                      role: "",
+                      duration: "",
+                      responsibilities: "",
+                    },
+                  ]
+            );
           }
         } else {
           setResume(null);
@@ -269,7 +305,6 @@ const ProfilePage = () => {
             skills: "",
             education: "",
             position: "",
-            
           });
         }
       } else {
@@ -298,7 +333,10 @@ const ProfilePage = () => {
 
   // Add new education entry
   const addEducationEntry = () => {
-    setEducationEntries([...educationEntries, { college: "", degree: "", batch: "" }]);
+    setEducationEntries([
+      ...educationEntries,
+      { college: "", degree: "", batch: "" },
+    ]);
   };
 
   // Remove education entry
@@ -309,15 +347,25 @@ const ProfilePage = () => {
   };
 
   // Handle education entry change
-  const handleEducationChange = (index: number, field: keyof EducationEntry, value: string) => {
+  const handleEducationChange = (
+    index: number,
+    field: keyof EducationEntry,
+    value: string
+  ) => {
     const updatedEntries = [...educationEntries];
-    updatedEntries[index] = { ...updatedEntries[index], [field]: capitalizeFirstLetter(value) };
+    updatedEntries[index] = {
+      ...updatedEntries[index],
+      [field]: capitalizeFirstLetter(value),
+    };
     setEducationEntries(updatedEntries);
   };
 
   // Add new experience entry
   const addExperienceEntry = () => {
-    setExperienceEntries([...experienceEntries, { company: "", role: "", duration: "", responsibilities: "" }]);
+    setExperienceEntries([
+      ...experienceEntries,
+      { company: "", role: "", duration: "", responsibilities: "" },
+    ]);
   };
 
   // Remove experience entry
@@ -328,35 +376,42 @@ const ProfilePage = () => {
   };
 
   const updateMobileNumber = async (newMobile: string) => {
-  try {
-    const response = await fetch(`/api/users`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        id: user?.id,
-        mobile: newMobile,
-      }),
-    });
+    try {
+      const response = await fetch(`/api/users`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: user?.id,
+          mobile: newMobile,
+        }),
+      });
 
-    const result = await response.json();
-    if (response.ok) {
-      setUser(prev => prev ? { ...prev, mobile: newMobile } : null);
-      return true;
-    } else {
-      throw new Error(result.message || "Failed to update mobile");
+      const result = await response.json();
+      if (response.ok) {
+        setUser((prev) => (prev ? { ...prev, mobile: newMobile } : null));
+        return true;
+      } else {
+        throw new Error(result.message || "Failed to update mobile");
+      }
+    } catch (error) {
+      console.error("Error updating mobile:", error);
+      return false;
     }
-  } catch (error) {
-    console.error("Error updating mobile:", error);
-    return false;
-  }
-};
+  };
 
   // Handle experience entry change
-  const handleExperienceChange = (index: number, field: keyof ExperienceEntry, value: string) => {
+  const handleExperienceChange = (
+    index: number,
+    field: keyof ExperienceEntry,
+    value: string
+  ) => {
     const updatedEntries = [...experienceEntries];
-    updatedEntries[index] = { ...updatedEntries[index], [field]: capitalizeFirstLetter(value) };
+    updatedEntries[index] = {
+      ...updatedEntries[index],
+      [field]: capitalizeFirstLetter(value),
+    };
     setExperienceEntries(updatedEntries);
   };
 
@@ -364,9 +419,9 @@ const ProfilePage = () => {
     e.preventDefault();
     setIsSubmitting(true);
     // Add this before the resume submission logic
-if (formData.mobile !== user?.mobile) {
-  await updateMobileNumber(formData.mobile || "");
-}
+    if (formData.mobile !== user?.mobile) {
+      await updateMobileNumber(formData.mobile || "");
+    }
 
     try {
       const submitData = new FormData();
@@ -374,7 +429,7 @@ if (formData.mobile !== user?.mobile) {
       // Format education and experience data
       const formattedEducation = formatEducationForDB(educationEntries);
       const formattedExperience = formatExperienceForDB(experienceEntries);
-      
+
       // Add form data to FormData object
       submitData.append("resumeUrl", formData.resumeUrl || "");
       submitData.append("experience", formattedExperience);
@@ -385,7 +440,7 @@ if (formData.mobile !== user?.mobile) {
 
       let response;
       if (resume?.id) {
-        console.log("resume id " , resume.id)
+        console.log("resume id ", resume.id);
         response = await fetch(`/api/resumes/${resume.id}`, {
           method: "PUT",
           body: submitData,
@@ -442,20 +497,24 @@ if (formData.mobile !== user?.mobile) {
                     {user?.name}
                   </CardTitle>
                   <CardDescription className="text-blue-100 mt-2">
-                    {user?.email} 
+                    {user?.email}
                   </CardDescription>
                 </div>
                 <Button
                   variant={isEditing ? "secondary" : "outline"}
                   onClick={() => setIsEditing(!isEditing)}
-                  className={`mt-4 md:mt-0 ${isEditing ? 'bg-white text-blue-600 hover:bg-gray-100' : 'border-white text-gennext hover:bg-white hover:text-blue-600'}`}
+                  className={`mt-4 md:mt-0 ${
+                    isEditing
+                      ? "bg-white text-blue-600 hover:bg-gray-100"
+                      : "border-white text-gennext hover:bg-white hover:text-blue-600"
+                  }`}
                   size="lg"
                 >
                   {isEditing ? "Cancel Editing" : "Edit Profile"}
                 </Button>
               </div>
             </CardHeader>
-            
+
             <CardContent className="p-6 py-4">
               {isEditing ? (
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -470,19 +529,22 @@ if (formData.mobile !== user?.mobile) {
                         </h3>
                         <div className="space-y-4">
                           <div>
-  <Label htmlFor="mobile" className="text-sm font-medium text-gray-700">
-    Mobile Number
-  </Label>
-  <Input
-    id="mobile"
-    name="mobile"
-    value={formData.mobile}
-    onChange={handleInputChange}
-    placeholder="Enter your mobile number"
-    maxLength={10}
-    className="mt-1"
-  />
-</div>
+                            <Label
+                              htmlFor="mobile"
+                              className="text-sm font-medium text-gray-700"
+                            >
+                              Mobile Number
+                            </Label>
+                            <Input
+                              id="mobile"
+                              name="mobile"
+                              value={formData.mobile}
+                              onChange={handleInputChange}
+                              placeholder="Enter your mobile number"
+                              maxLength={10}
+                              className="mt-1"
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -493,7 +555,10 @@ if (formData.mobile !== user?.mobile) {
                           Job Preferences
                         </h3>
                         <div>
-                          <Label htmlFor="position" className="text-sm font-medium text-gray-700">
+                          <Label
+                            htmlFor="position"
+                            className="text-sm font-medium text-gray-700"
+                          >
                             Desired Positions/Roles *
                           </Label>
                           <Textarea
@@ -528,10 +593,13 @@ if (formData.mobile !== user?.mobile) {
                             Add Education
                           </Button>
                         </div>
-                        
+
                         <div className="space-y-6">
                           {educationEntries.map((entry, index) => (
-                            <div key={index} className="bg-white p-4 rounded-lg border border-gray-200 relative">
+                            <div
+                              key={index}
+                              className="bg-white p-4 rounded-lg border border-gray-200 relative"
+                            >
                               {educationEntries.length > 1 && (
                                 <Button
                                   type="button"
@@ -543,7 +611,7 @@ if (formData.mobile !== user?.mobile) {
                                   <X className="h-4 w-4" />
                                 </Button>
                               )}
-                              
+
                               <div className="space-y-4 pr-8">
                                 <div>
                                   <Label className="text-sm font-medium text-gray-700">
@@ -551,7 +619,13 @@ if (formData.mobile !== user?.mobile) {
                                   </Label>
                                   <Input
                                     value={entry.college}
-                                    onChange={(e) => handleEducationChange(index, 'college', e.target.value)}
+                                    onChange={(e) =>
+                                      handleEducationChange(
+                                        index,
+                                        "college",
+                                        e.target.value
+                                      )
+                                    }
                                     placeholder="Enter your college or university name"
                                     className="mt-1 capitalize"
                                   />
@@ -562,27 +636,36 @@ if (formData.mobile !== user?.mobile) {
                                   </Label>
                                   <Input
                                     value={entry.degree}
-                                    onChange={(e) => handleEducationChange(index, 'degree', e.target.value)}
+                                    onChange={(e) =>
+                                      handleEducationChange(
+                                        index,
+                                        "degree",
+                                        e.target.value
+                                      )
+                                    }
                                     placeholder="B.Tech (cse)"
                                     className="mt-1 capitalize"
                                   />
                                 </div>
                                 <div>
-  <Label className="text-sm font-medium text-gray-700">
-    Passing Year *
-  </Label>
-  <Input
-    type="number"
-    value={entry.batch}
-    onChange={(e) => {
-      const value = e.target.value.slice(0, 4); // only 4 digits allowed
-      handleEducationChange(index, "batch", value); // ✅ use trimmed value
-    }}
-    placeholder="2024"
-    className="mt-1 capitalize"
-  />
-</div>
-
+                                  <Label className="text-sm font-medium text-gray-700">
+                                    Passing Year *
+                                  </Label>
+                                  <Input
+                                    type="number"
+                                    value={entry.batch}
+                                    onChange={(e) => {
+                                      const value = e.target.value.slice(0, 4); // only 4 digits allowed
+                                      handleEducationChange(
+                                        index,
+                                        "batch",
+                                        value
+                                      ); // ✅ use trimmed value
+                                    }}
+                                    placeholder="2024"
+                                    className="mt-1 capitalize"
+                                  />
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -597,8 +680,11 @@ if (formData.mobile !== user?.mobile) {
                         </h3>
                         <div className="space-y-4">
                           <div>
-                            <Label htmlFor="resumeUrl" className="text-sm font-medium text-gray-700">
-                              Resume Link (Optional)
+                            <Label
+                              htmlFor="resumeUrl"
+                              className="text-sm font-medium text-gray-700"
+                            >
+                              Resume Link 
                             </Label>
                             <Input
                               id="resumeUrl"
@@ -611,11 +697,14 @@ if (formData.mobile !== user?.mobile) {
                           </div>
                           <div className="text-center border-2 border-dashed border-gray-300 rounded-lg">
                             <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-600 mb-2">Or upload your resume</p>
+                            <p className="text-sm text-gray-600 mb-2">
+                              Or upload your resume
+                            </p>
                             <UploadButton
                               endpoint="docUploader"
                               appearance={{
-                                button: "bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md",
+                                button:
+                                  "bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md",
                                 allowedContent: "text-xs text-gray-500",
                               }}
                               onClientUploadComplete={(res) => {
@@ -658,7 +747,10 @@ if (formData.mobile !== user?.mobile) {
 
                         <div className="space-y-6">
                           {experienceEntries.map((entry, index) => (
-                            <div key={index} className="bg-white p-4 rounded-lg border border-gray-200 relative">
+                            <div
+                              key={index}
+                              className="bg-white p-4 rounded-lg border border-gray-200 relative"
+                            >
                               {experienceEntries.length > 1 && (
                                 <Button
                                   type="button"
@@ -670,7 +762,7 @@ if (formData.mobile !== user?.mobile) {
                                   <X className="h-4 w-4" />
                                 </Button>
                               )}
-                              
+
                               <div className="space-y-4 pr-8">
                                 <div>
                                   <Label className="text-sm font-medium text-gray-700">
@@ -678,7 +770,13 @@ if (formData.mobile !== user?.mobile) {
                                   </Label>
                                   <Input
                                     value={entry.company}
-                                    onChange={(e) => handleExperienceChange(index, 'company', e.target.value)}
+                                    onChange={(e) =>
+                                      handleExperienceChange(
+                                        index,
+                                        "company",
+                                        e.target.value
+                                      )
+                                    }
                                     placeholder="Enter company name"
                                     className="mt-1 capitalize"
                                   />
@@ -689,7 +787,13 @@ if (formData.mobile !== user?.mobile) {
                                   </Label>
                                   <Input
                                     value={entry.role}
-                                    onChange={(e) => handleExperienceChange(index, 'role', e.target.value)}
+                                    onChange={(e) =>
+                                      handleExperienceChange(
+                                        index,
+                                        "role",
+                                        e.target.value
+                                      )
+                                    }
                                     placeholder="e.g., Software Developer, Manager, etc."
                                     className="mt-1 capitalize"
                                   />
@@ -700,7 +804,13 @@ if (formData.mobile !== user?.mobile) {
                                   </Label>
                                   <Input
                                     value={entry.duration}
-                                    onChange={(e) => handleExperienceChange(index, 'duration', e.target.value)}
+                                    onChange={(e) =>
+                                      handleExperienceChange(
+                                        index,
+                                        "duration",
+                                        e.target.value
+                                      )
+                                    }
                                     placeholder="e.g., Jan 2020 - Dec 2022 or 2 years"
                                     className="mt-1"
                                   />
@@ -711,7 +821,13 @@ if (formData.mobile !== user?.mobile) {
                                   </Label>
                                   <Textarea
                                     value={entry.responsibilities}
-                                    onChange={(e) => handleExperienceChange(index, 'responsibilities', e.target.value)}
+                                    onChange={(e) =>
+                                      handleExperienceChange(
+                                        index,
+                                        "responsibilities",
+                                        e.target.value
+                                      )
+                                    }
                                     placeholder="Describe your key responsibilities and achievements..."
                                     rows={4}
                                     className="mt-1 resize-none"
@@ -730,7 +846,10 @@ if (formData.mobile !== user?.mobile) {
                           Technical Skills
                         </h3>
                         <div>
-                          <Label htmlFor="skills" className="text-sm font-medium text-gray-700">
+                          <Label
+                            htmlFor="skills"
+                            className="text-sm font-medium text-gray-700"
+                          >
                             Skills & Technologies *
                           </Label>
                           <Textarea
@@ -743,7 +862,8 @@ if (formData.mobile !== user?.mobile) {
                             className="mt-1 resize-none"
                           />
                           <p className="text-xs text-gray-500 mt-2">
-                            Separate skills with commas or organize by categories
+                            Separate skills with commas or organize by
+                            categories
                           </p>
                         </div>
                       </div>
@@ -774,9 +894,12 @@ if (formData.mobile !== user?.mobile) {
                       <div className="bg-gray-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
                         <FileText className="h-12 w-12 text-gray-400" />
                       </div>
-                      <h3 className="text-2xl font-semibold text-gray-800 mb-4">Complete Your Profile</h3>
+                      <h3 className="text-2xl font-semibold text-gray-800 mb-4">
+                        Complete Your Profile
+                      </h3>
                       <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                        Add your professional information to make your profile stand out to employers
+                        Add your professional information to make your profile
+                        stand out to employers
                       </p>
                       <Button
                         onClick={() => setIsEditing(true)}
@@ -799,18 +922,30 @@ if (formData.mobile !== user?.mobile) {
                           <div className="space-y-3 capitalize">
                             <div className="flex items-center gap-3">
                               <User className="h-4 w-4 text-gray-500" />
-                              <span className="font-medium text-gray-700">Name:</span>
-                              <span className="text-gray-600">{user?.name}</span>
+                              <span className="font-medium text-gray-700">
+                                Name:
+                              </span>
+                              <span className="text-gray-600">
+                                {user?.name}
+                              </span>
                             </div>
                             <div className="flex items-center gap-3">
                               <Mail className="h-4 w-4 text-gray-500" />
-                              <span className="font-medium text-gray-700">Email:</span>
-                              <span className="text-gray-600">{user?.email}</span>
+                              <span className="font-medium text-gray-700">
+                                Email:
+                              </span>
+                              <span className="text-gray-600">
+                                {user?.email}
+                              </span>
                             </div>
                             <div className="flex items-center gap-3">
                               <Phone className="h-4 w-4 text-gray-500" />
-                              <span className="font-medium text-gray-700">Mobile:</span>
-                              <span className="text-gray-600">{user?.mobile || "Not provided"}</span>
+                              <span className="font-medium text-gray-700">
+                                Mobile:
+                              </span>
+                              <span className="text-gray-600">
+                                {user?.mobile || "Not provided"}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -823,14 +958,16 @@ if (formData.mobile !== user?.mobile) {
                               Job Preferences
                             </h3>
                             <div className="flex flex-wrap gap-2">
-                              {parsePositions(resume.position).map((position, index) => (
-                                <span
-                                  key={index}
-                                  className="bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-sm capitalize"
-                                >
-                                  {position}
-                                </span>
-                              ))}
+                              {parsePositions(resume.position).map(
+                                (position, index) => (
+                                  <span
+                                    key={index}
+                                    className="bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-sm capitalize"
+                                  >
+                                    {position}
+                                  </span>
+                                )
+                              )}
                             </div>
                           </div>
                         )}
@@ -843,15 +980,27 @@ if (formData.mobile !== user?.mobile) {
                               Education
                             </h3>
                             <div className="space-y-4">
-                              {parseEducationData(resume.education).map((entry, index) => (
-                                <div key={index} className="bg-white p-4 rounded-lg border border-green-200">
-                                  <div className="text-gray-700 leading-relaxed capitalize space-y-1">
-                                    <div><strong>Institution:</strong> {entry.college}</div>
-                                    <div><strong>Degree:</strong> {entry.degree}</div>
-                                    <div><strong>Year:</strong> {entry.batch}</div>
+                              {parseEducationData(resume.education).map(
+                                (entry, index) => (
+                                  <div
+                                    key={index}
+                                    className="bg-white p-4 rounded-lg border border-green-200"
+                                  >
+                                    <div className="text-gray-700 leading-relaxed capitalize space-y-1">
+                                      <div>
+                                        <strong>Institution:</strong>{" "}
+                                        {entry.college}
+                                      </div>
+                                      <div>
+                                        <strong>Degree:</strong> {entry.degree}
+                                      </div>
+                                      <div>
+                                        <strong>Year:</strong> {entry.batch}
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                )
+                              )}
                             </div>
                           </div>
                         )}
@@ -886,19 +1035,34 @@ if (formData.mobile !== user?.mobile) {
                               Work Experience
                             </h3>
                             <div className="space-y-4">
-                              {parseExperienceData(resume.experience).map((entry, index) => (
-                                <div key={index} className="bg-white p-4 rounded-lg border border-orange-200">
-                                  <div className="text-gray-700 leading-relaxed capitalize space-y-2">
-                                    <div><strong>Company:</strong> {entry.company}</div>
-                                    <div><strong>Role:</strong> {entry.role}</div>
-                                    <div><strong>Duration:</strong> {entry.duration}</div>
-                                    <div>
-                                      <strong>Responsibilities:</strong> 
-                                      <div className="mt-1 pl-4 text-sm">{entry.responsibilities}</div>
+                              {parseExperienceData(resume.experience).map(
+                                (entry, index) => (
+                                  <div
+                                    key={index}
+                                    className="bg-white p-4 rounded-lg border border-orange-200"
+                                  >
+                                    <div className="text-gray-700 leading-relaxed capitalize space-y-2">
+                                      <div>
+                                        <strong>Company:</strong>{" "}
+                                        {entry.company}
+                                      </div>
+                                      <div>
+                                        <strong>Role:</strong> {entry.role}
+                                      </div>
+                                      <div>
+                                        <strong>Duration:</strong>{" "}
+                                        {entry.duration}
+                                      </div>
+                                      <div>
+                                        <strong>Responsibilities:</strong>
+                                        <div className="mt-1 pl-4 text-sm">
+                                          {entry.responsibilities}
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              ))}
+                                )
+                              )}
                             </div>
                           </div>
                         )}
@@ -911,18 +1075,19 @@ if (formData.mobile !== user?.mobile) {
                               Technical Skills
                             </h3>
                             <div className="flex flex-wrap gap-2">
-                              {parseSkills(resume.skills).map((skill, index) => (
-                                <span
-                                  key={index}
-                                  className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-sm capitalize"
-                                >
-                                  {skill}
-                                </span>
-                              ))}
+                              {parseSkills(resume.skills).map(
+                                (skill, index) => (
+                                  <span
+                                    key={index}
+                                    className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-sm capitalize"
+                                  >
+                                    {skill}
+                                  </span>
+                                )
+                              )}
                             </div>
                           </div>
                         )}
-
                       </div>
                     </div>
                   )}

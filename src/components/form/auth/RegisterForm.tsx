@@ -36,6 +36,7 @@ import * as z from "zod";
 import { FormError } from "../form-error";
 import { FormSuccess } from "../form-success";
 import { toast } from "sonner";
+import { zodResolver } from "@hookform/resolvers/zod"; // Add this import
 
 const RegisterForm = ({ text, role }: RegisterFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -46,6 +47,7 @@ const RegisterForm = ({ text, role }: RegisterFormProps) => {
   const router = useRouter();
 
   const form = useForm<z.infer<typeof FormSchema>>({
+    resolver: zodResolver(FormSchema), // Add this line to enable Zod validation
     defaultValues: {
       name: "",
       email: "",
@@ -60,18 +62,6 @@ const RegisterForm = ({ text, role }: RegisterFormProps) => {
   const passwordChecks = getPasswordStrength(watchedPassword || "");
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-    // Check if any required field is empty
-    if (!data.name || !data.email || !data.mobile || !data.password || !data.confirmPassword) {
-      toast.error("Please fill all the required fields");
-      return;
-    }
-
-    // Check if passwords match
-    if (data.password !== data.confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
     if (role) {
       data.role = role;
     }
@@ -114,80 +104,6 @@ const RegisterForm = ({ text, role }: RegisterFormProps) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gennext-light via-white to-teal-50 p-4">
-      <style jsx global>{`
-        /* Custom Phone Input Styles */
-        .phone-input-wrapper {
-          position: relative;
-        }
-
-        .phone-input-field {
-          height: 44px !important;
-          width: 100% !important;
-          padding-left: 40px !important;
-          padding-right: 16px !important;
-          border-radius: 12px !important;
-          border: 2px solid #e5e7eb !important;
-          background-color: rgba(249, 250, 251, 0.5) !important;
-          font-size: 14px !important;
-          transition: all 0.2s !important;
-        }
-
-        .phone-input-field:focus-within {
-          border-color: #04aa6d !important;
-          background-color: white !important;
-        }
-
-        .phone-input-field:hover {
-          background-color: white !important;
-        }
-
-        .PhoneInputCountry {
-          display: flex !important;
-          align-items: center !important;
-          margin-left: 8px !important;
-          margin-right: 8px !important;
-        }
-
-        .PhoneInputCountryIcon {
-          width: 20px !important;
-          height: 15px !important;
-          border-radius: 2px !important;
-          margin-right: 4px !important;
-        }
-
-        .PhoneInputCountrySelect {
-          background: none !important;
-          border: none !important;
-          font-size: 14px !important;
-          cursor: pointer !important;
-          color: #374151 !important;
-        }
-
-        .PhoneInputCountrySelect:focus {
-          outline: none !important;
-        }
-
-        .PhoneInputCountrySelectArrow {
-          margin-left: 4px !important;
-          width: 10px !important;
-          height: 10px !important;
-          color: #6b7280 !important;
-        }
-
-        .PhoneInputInput {
-          border: none !important;
-          outline: none !important;
-          background: none !important;
-          flex: 1 !important;
-          font-size: 14px !important;
-          padding: 0 !important;
-        }
-
-        .PhoneInputInput::placeholder {
-          color: #9ca3af !important;
-        }
-      `}</style>
-
       <div className="bg-white/90 backdrop-blur-sm shadow-2xl rounded-3xl overflow-hidden max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 border border-white/20">
         {/* Left Section: Registration Form */}
         <div className="p-6 lg:p-8 flex flex-col justify-center space-y-4">
@@ -223,6 +139,7 @@ const RegisterForm = ({ text, role }: RegisterFormProps) => {
                           {...field}
                           className="h-11 pl-10 pr-4 rounded-xl border-2 border-gray-200   transition-all duration-200 bg-gray-50/50 hover:bg-white"
                           placeholder="Full Name"
+                          disabled={isPending}
                         />
                       </div>
                     </FormControl>
@@ -245,6 +162,7 @@ const RegisterForm = ({ text, role }: RegisterFormProps) => {
                           type="email"
                           className="h-11 pl-10 pr-4 rounded-xl border-2 border-gray-200  transition-all  bg-gray-50/50 hover:bg-white"
                           placeholder="Email Address"
+                          disabled={isPending}
                         />
                       </div>
                     </FormControl>
@@ -253,42 +171,42 @@ const RegisterForm = ({ text, role }: RegisterFormProps) => {
                 )}
               />
 
-              {/* Phone Field - FIXED VERSION */}
-             
-<FormField
-  control={form.control}
-  name="mobile"
-  render={({ field }) => (
-    <FormItem>
-      <FormControl>
-        <div className="relative group">
-          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-gennext transition-colors" />
-          <Input
-            {...field}
-            type="tel"
-            className="h-11 pl-10 pr-4 rounded-xl border-2 border-gray-200 transition-all bg-gray-50/50 hover:bg-white"
-            placeholder="Mobile (10 digits)"
-            maxLength={10}
-            onInput={(e) => {
-              // Remove any non-digit characters and limit to 10 digits
-              const target = e.target as HTMLInputElement;
-              const value = target.value.replace(/\D/g, '').slice(0, 10);
-              target.value = value;
-              field.onChange(value);
-            }}
-            onKeyPress={(e) => {
-              // Only allow digits
-              if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter'].includes(e.key)) {
-                e.preventDefault();
-              }
-            }}
-          />
-        </div>
-      </FormControl>
-      <FormMessage className="text-xs" />
-    </FormItem>
-  )}
-/>
+              {/* Phone Field */}
+              <FormField
+                control={form.control}
+                name="mobile"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <div className="relative group">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-gennext transition-colors" />
+                        <Input
+                          {...field}
+                          type="tel"
+                          className="h-11 pl-10 pr-4 rounded-xl border-2 border-gray-200 transition-all bg-gray-50/50 hover:bg-white"
+                          placeholder="Mobile (10 digits)"
+                          maxLength={10}
+                          disabled={isPending}
+                          onInput={(e) => {
+                            // Remove any non-digit characters and limit to 10 digits
+                            const target = e.target as HTMLInputElement;
+                            const value = target.value.replace(/\D/g, '').slice(0, 10);
+                            target.value = value;
+                            field.onChange(value);
+                          }}
+                          onKeyPress={(e) => {
+                            // Only allow digits
+                            if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter'].includes(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
 
               {/* Password Field */}
               <FormField
@@ -305,11 +223,13 @@ const RegisterForm = ({ text, role }: RegisterFormProps) => {
                             className="h-11 pl-10 pr-10 rounded-xl border-2 border-gray-200 focus:ring-0 transition-all duration-200 bg-gray-50/50 hover:bg-white"
                             placeholder="Password"
                             type={showPassword ? "text" : "password"}
+                            disabled={isPending}
                           />
                           <button
                             type="button"
                             onClick={togglePasswordVisibility}
                             className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 hover:text-gennext focus:outline-none transition-colors"
+                            disabled={isPending}
                           >
                             {showPassword ? (
                               <EyeOff className="h-4 w-4" />
@@ -415,11 +335,13 @@ const RegisterForm = ({ text, role }: RegisterFormProps) => {
                           className="h-11 pl-10 pr-10 rounded-xl border-2 border-gray-200 transition-all duration-200 bg-gray-50/50 hover:bg-white"
                           placeholder="Confirm Password"
                           type={showConfirmPassword ? "text" : "password"}
+                          disabled={isPending}
                         />
                         <button
                           type="button"
                           onClick={toggleConfirmPasswordVisibility}
                           className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 hover:text-gennext focus:outline-none transition-colors"
+                          disabled={isPending}
                         >
                           {showConfirmPassword ? (
                             <EyeOff className="h-4 w-4" />

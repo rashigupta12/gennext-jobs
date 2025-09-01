@@ -11,41 +11,26 @@ export const FormSchema = z
         "Please enter a valid email address"
       ),
     // FIXED MOBILE VALIDATION for Indian numbers
-    mobile: z
-      .string()
-      .min(1, "Phone number is required")
-      .refine((value) => {
-        if (!value) return false;
-        
-        // Remove all non-digit characters for validation
-        const cleanNumber = value.replace(/\D/g, '');
-        
-        // Check if it's exactly 10 digits (local format)
-        if (cleanNumber.length === 10) {
-          return /^[6-9][0-9]{9}$/.test(cleanNumber);
-        }
-        
-        // Check if it's 12 digits with country code 91
-        if (cleanNumber.length === 12 && cleanNumber.startsWith('91')) {
-          const indianNumber = cleanNumber.substring(2);
-          return /^[6-9][0-9]{9}$/.test(indianNumber);
-        }
-        
-        // Check for +91 format
-        if (value.startsWith('+91')) {
-          const numberPart = cleanNumber.substring(2);
-          return numberPart.length === 10 && /^[6-9][0-9]{9}$/.test(numberPart);
-        }
-        
-        return false;
-      }, "Please enter a valid Indian mobile number (10 digits starting with 6-9)"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-        "Password must contain uppercase, lowercase, number, and special character"
-      ),
+  mobile: z
+  .string()
+  .min(1, "Phone number is required")
+  .refine((value) => {
+    if (!value) return false;
+    
+    // Remove any non-digit characters
+    const cleanedValue = value.replace(/\D/g, '');
+    
+    // Indian mobile numbers: 10 digits starting with 6,7,8,9
+    const indianMobileRegex = /^[6-9]\d{9}$/;
+    
+    return indianMobileRegex.test(cleanedValue);
+  }, "Please enter a valid 10-digit Indian mobile number (should start with 6,7,8,9)"),
+   password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[@$!%*?&]/, "Password must contain at least one special character (@$!%*?&)"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
     role: z.enum(["USER", "ADMIN", "RECRUITER", "SUPER_ADMIN"]).default("USER"),
   })

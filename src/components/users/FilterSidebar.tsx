@@ -14,6 +14,7 @@ import { ApplicationStatus, Filters } from "@/types";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { useState } from "react";
+import SalaryFilter from "./SalaryFilter";
 
 interface MergedSidebarProps {
   filters: Filters;
@@ -26,6 +27,7 @@ interface MergedSidebarProps {
   updateLocationFilter: (location: string) => void;
   updateEmploymentTypeFilter: (type: string) => void;
   updateDateFilter: (field: "dateFrom" | "dateTo", date: Date | null) => void;
+  updateSalaryRangeFilter: (minSalary: string, maxSalary: string) => void; // Add this
   onFilterChange: (name: string, value: string) => void;
   onResetFilters: () => void;
 }
@@ -41,10 +43,19 @@ const FilterContent = ({
   updateLocationFilter,
   updateEmploymentTypeFilter,
   updateDateFilter,
+  updateSalaryRangeFilter, // Add this
   // onFilterChange,
   onResetFilters,
 }: MergedSidebarProps) => {
   const [showAllLocations, setShowAllLocations] = useState(false);
+  
+  const handleSalaryRangeChange = (minSalary: string, maxSalary: string) => {
+    updateSalaryRangeFilter(minSalary, maxSalary);
+  };
+
+  const handleSalaryReset = () => {
+    updateSalaryRangeFilter("", "");
+  };
   
   return (
     <div className="space-y-6 p-1">
@@ -258,27 +269,13 @@ const FilterContent = ({
           </div>
         </div>
 
-        {/* Salary Range Filter */}
-        {/* <div className="mb-6">
-          <h3 className="text-sm font-medium mb-3">Salary Range</h3>
-          <Select
-            value={filters.salaryRange || "0"}
-            onValueChange={(value) => onFilterChange("salaryRange", value)}
-          >
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder="Select salary range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">Any Salary</SelectItem>
-              <SelectItem value="0-50000">$0 - $50,000</SelectItem>
-              <SelectItem value="50000-75000">$50,000 - $75,000</SelectItem>
-              <SelectItem value="75000-100000">$75,000 - $100,000</SelectItem>
-              <SelectItem value="100000-150000">$100,000 - $150,000</SelectItem>
-              <SelectItem value="150000-200000">$150,000 - $200,000</SelectItem>
-              <SelectItem value="200000+">$200,000+</SelectItem>
-            </SelectContent>
-          </Select>
-        </div> */}
+        <Separator className="my-6" />
+
+        {/* Salary Range Filter - Now using the custom SalaryFilter component */}
+        <SalaryFilter
+          onSalaryRangeChange={handleSalaryRangeChange}
+          onReset={handleSalaryReset}
+        />
 
         <Separator className="my-6" />
 
