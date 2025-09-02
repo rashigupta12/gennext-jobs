@@ -378,12 +378,12 @@ const AllJobListings = () => {
             View
           </Button>
         </Link>
-        <Link
-          href={`/jobs/apply?id=${item.job.id}&title=${encodeURIComponent(
-            item.job.title
-          )}`}
-          className="flex-1"
-        >
+       <Link
+  href={`/jobs/apply?id=${item.job.id}&title=${encodeURIComponent(
+    item.job.title
+  )}&companyname=${encodeURIComponent(item.company.name)}`}
+  className="flex-1"
+>
           <Button size="sm" className="w-full">
             <FileText className="h-4 w-4 mr-1" />
             Apply
@@ -396,6 +396,8 @@ const AllJobListings = () => {
   function handleSalaryReset(): void {
     throw new Error("Function not implemented.");
   }
+
+  console.log(filteredData)
 
   return (
     <>
@@ -589,9 +591,11 @@ const AllJobListings = () => {
                 </Card>
               )}
 
+              
               {!loading && !error && combinedData.length > 0 && (
                 <>
                   {filteredData.length === 0 ? (
+                  
                     <Card>
                       <CardHeader>
                         <CardTitle>No Results Found</CardTitle>
@@ -637,8 +641,10 @@ const AllJobListings = () => {
                                 </TableHeader>
                                 <TableBody>
                                   {paginatedResults.map((item) => (
+                               
                                     <TableRow
                                       key={item.job.id}
+                                      // {console.log(item)}
                                       className="hover:bg-gray-50"
                                     >
                                       <TableCell className="font-medium">
@@ -733,6 +739,8 @@ const AllJobListings = () => {
                                                     item.job.id
                                                   }&title=${encodeURIComponent(
                                                     item.job.title
+                                                  )}&companyname=${encodeURIComponent(
+                                                    item.company.name
                                                   )}`}
                                                 >
                                                   <Button

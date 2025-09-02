@@ -132,8 +132,10 @@ interface ExperienceEntry {
 const JobApplicationForm: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  console.log(searchParams)
   const id = searchParams.get("id");
   const title = searchParams.get("title");
+  const comapnyname = searchParams.get("companyname")
   const { data: session, status } = useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -155,6 +157,7 @@ const JobApplicationForm: React.FC = () => {
   const [html2pdfModule, setHtml2pdfModule] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [resumeUploaded, setResumeUploaded] = useState(false);
+  const [comapnyName , setCompanyName] = useState("Gennext IT")
 
   // Multiple education and experience entries
   const [educationEntries, setEducationEntries] = useState<EducationEntry[]>([
@@ -380,7 +383,8 @@ const formatExperienceForDB = (entries: ExperienceEntry[]): string => {
   useEffect(() => {
     if (title) setJobTitle(title as string);
     if (id) setJobId(id as string);
-  }, [title, id]);
+    if(comapnyname) setCompanyName(comapnyname as string);
+  }, [title, id , comapnyname]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -820,6 +824,9 @@ const validateResumeField = (): boolean => {
           {/* Header Section */}
           <div className="mb-1 text-center">
             <h1 className="text-xl font-bold text-gray-800 capitalize">{jobTitle}</h1>
+            {comapnyName && (
+              <h1 className="text-lg font-bold text-gennext-dark capitalize">{comapnyName}</h1>
+            )}
           </div>
 
           <Card className="shadow-xl bg-white/95 backdrop-blur-sm">
