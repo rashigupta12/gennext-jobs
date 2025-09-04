@@ -42,11 +42,11 @@ const Footer: React.FC = () => {
 
         {/* Quick Links */}
         <div>
-          <h2 className="text-lg font-semibold text-gray-800">Quick Links</h2>
+          {/* <h2 className="text-lg font-semibold text-gray-800">Quick Links</h2>
           <ul className="mt-4 space-y-2 text-gray-600">
             <li><Link href="/" className="hover:text-[#007BFF] transition-colors">Home</Link></li>
             <li><a href="/UploadResume" className="hover:text-[#007BFF] transition-colors">Upload Resume</a></li>
-          </ul>
+          </ul> */}
         </div>
 
         {/* For Candidates & Social Media */}

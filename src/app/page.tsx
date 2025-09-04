@@ -155,8 +155,8 @@ export default function Home() {
                 key={`${profile}-${index}`}
                 className={`rounded-full border px-5 py-2.5 text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
                   selectedJobs === profile
-                    ? "bg-gennext-DEFAULT text-white border-gennext-DEFAULT shadow-md"
-                    : "border-gray-200 text-gray-700 bg-white hover:text-gennext-DEFAULT hover:border-gennext-light hover:shadow-sm"
+                    ? "bg-gennext text-white border-gennext shadow-md"
+                    : "border-gray-200 text-gray-700 bg-white hover:text-gennext hover:border-gennext-light hover:shadow-sm"
                 }`}
                 onClick={() =>
                   setSelectedJobs(selectedJobs === profile ? null : profile)

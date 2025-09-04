@@ -2,7 +2,15 @@
 "use client";
 
 import { formatDateddmmyyy } from "@/helpers";
-import { Award, Briefcase, Calendar, Clock, ExternalLink, MapPin, Users } from "lucide-react";
+import {
+  Award,
+  Briefcase,
+  Calendar,
+  Clock,
+  ExternalLink,
+  MapPin,
+  Users,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 
@@ -56,19 +64,19 @@ interface JobInfoProps {
   onApplyClick?: (jobId: string, jobTitle: string) => void;
 }
 
-const JobInfo = ({  jobDetails, onApplyClick }: JobInfoProps) => {
-
+const JobInfo = ({ jobDetails, onApplyClick }: JobInfoProps) => {
   const { data: session } = useSession(); // Get session data from NextAuth
 
-  
   const handleApplyClick = () => {
     if (!session || session.user.role !== "USER") {
       alert("You can't apply for this job.");
       return;
     }
-  
+
     if (jobDetails) {
-      window.location.href = `/jobs/apply?id=${jobDetails.id}&title=${encodeURIComponent(jobDetails.title)}`;
+      window.location.href = `/jobs/apply?id=${
+        jobDetails.id
+      }&title=${encodeURIComponent(jobDetails.title)}`;
     }
   };
 
@@ -94,7 +102,7 @@ const JobInfo = ({  jobDetails, onApplyClick }: JobInfoProps) => {
               <h1 className="text-2xl md:text-3xl font-bold text-blue-800 mb-1 capitalize">
                 {jobDetails.title}
               </h1>
-              
+
               {/* Apply Button (desktop) */}
               <div className="hidden md:block">
                 <button
@@ -129,26 +137,48 @@ const JobInfo = ({  jobDetails, onApplyClick }: JobInfoProps) => {
             </div>
 
             <div className="flex flex-wrap gap-2 md:gap-4 text-gray-600 mt-3 capitalize">
-              <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
-                <MapPin size={16} className="text-blue-600" />
-                <span className="text-sm md:text-base">{jobDetails.location}</span>
-              </div>
-              <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
-                <Clock size={16} className="text-green-600" />
-                <span className="text-sm md:text-base">{jobDetails.employmentType}</span>
-              </div>
-              <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
+              {jobDetails.location && (
+                <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
+                  <MapPin size={16} className="text-blue-600" />
+                  <span className="text-sm md:text-base">
+                    {jobDetails.location}
+                  </span>
+                </div>
+              )}
+
+              {jobDetails.employmentType && (
+                <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
+                  <Clock size={16} className="text-green-600" />
+
+                  <span className="text-sm md:text-base">
+                    {jobDetails.employmentType}
+                  </span>
+                </div>
+              )}
+
+              {jobDetails.duration && (
+                <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full">
                 <Briefcase size={16} className="text-indigo-600" />
-                <span className="text-sm md:text-base">{jobDetails.duration}</span>
+                <span className="text-sm md:text-base">
+                  {jobDetails.duration}
+                </span>
               </div>
+              )}
+              
             </div>
           </div>
         </div>
-        
+
         {/* Apply Button (mobile) */}
         <div className="md:hidden mt-4">
           <button
-            onClick={() => onApplyClick ? onApplyClick(jobDetails.id, jobDetails.title) : window.location.href = `/jobs/apply?id=${jobDetails.id}&title=${encodeURIComponent(jobDetails.title)}`}
+            onClick={() =>
+              onApplyClick
+                ? onApplyClick(jobDetails.id, jobDetails.title)
+                : (window.location.href = `/jobs/apply?id=${
+                    jobDetails.id
+                  }&title=${encodeURIComponent(jobDetails.title)}`)
+            }
             className="w-full px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-md"
           >
             Apply Now
@@ -162,35 +192,58 @@ const JobInfo = ({  jobDetails, onApplyClick }: JobInfoProps) => {
         <div className="lg:col-span-2 space-y-6">
           {/* Quick Info Panel */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg shadow-sm">
+            {(jobDetails.salary || jobDetails.workHours) &&(
+                <div className="bg-blue-50 p-4 rounded-lg shadow-sm">
               <div className="flex items-center gap-2 mb-1 text-blue-800 font-medium">
                 <Award size={18} />
                 <span className="text-sm md:text-base">Compensation</span>
               </div>
-              <p className="text-base md:text-lg font-semibold">{jobDetails.salary}</p>
+              {jobDetails.salary &&  (
+                <p className="text-base md:text-lg font-semibold">
+                {jobDetails.salary}
+              </p>
+              )}
+              
               {jobDetails.workHours && (
-                <p className="text-xs md:text-sm text-gray-600">Work Hours: {jobDetails.workHours}</p>
+                <p className="text-xs md:text-sm text-gray-600">
+                  Work Hours: {jobDetails.workHours}
+                </p>
               )}
             </div>
-            
+            )}
+          
+
             <div className="bg-blue-50 p-4 rounded-lg shadow-sm capitalize">
               <div className="flex items-center gap-2 mb-1 text-blue-800 font-medium">
                 <Users size={18} />
                 <span className="text-sm md:text-base">Recruitment</span>
               </div>
-              <p className="text-sm md:text-base">Openings: <span className="font-semibold">{jobDetails.openings}</span></p>
-              <p className="text-sm md:text-base">Applicants: <span className="font-semibold">{jobDetails.applicantsCount}</span></p>
+              <p className="text-sm md:text-base">
+                Openings:{" "}
+                <span className="font-semibold">{jobDetails.openings}</span>
+              </p>
+              <p className="text-sm md:text-base">
+                Applicants:{" "}
+                <span className="font-semibold">
+                  {jobDetails.applicantsCount}
+                </span>
+              </p>
               {jobDetails.role && (
-                <p className="text-xs md:text-sm text-gray-600">Role: {jobDetails.role}</p>
+                <p className="text-xs md:text-sm text-gray-600">
+                  Role: {jobDetails.role}
+                </p>
               )}
               {jobDetails.department && (
-                <p className="text-xs md:text-sm text-gray-600">Department: {jobDetails.department}</p>
+                <p className="text-xs md:text-sm text-gray-600">
+                  Department: {jobDetails.department}
+                </p>
               )}
             </div>
           </div>
 
           {/* Description */}
-          <div className="bg-white p-4 md:p-6 rounded-lg border border-gray-200 capitalize">
+          {jobDetails.description && (
+            <div className="bg-white p-4 md:p-6 rounded-lg border border-gray-200 capitalize">
             <h3 className="text-lg md:text-xl font-semibold text-blue-800 mb-3 pb-2 border-b border-gray-100">
               Job Description
             </h3>
@@ -198,6 +251,8 @@ const JobInfo = ({  jobDetails, onApplyClick }: JobInfoProps) => {
               {jobDetails.description}
             </div>
           </div>
+          )}
+          
 
           {/* Highlights */}
           {jobDetails.highlights && jobDetails.highlights.length > 0 && (
@@ -207,7 +262,10 @@ const JobInfo = ({  jobDetails, onApplyClick }: JobInfoProps) => {
               </h3>
               <ul className="space-y-2 text-gray-700 capitalize">
                 {jobDetails.highlights.map((highlight, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm md:text-base">
+                  <li
+                    key={index}
+                    className="flex items-start gap-2 text-sm md:text-base"
+                  >
                     <span className="inline-block w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></span>
                     <span>{highlight}</span>
                   </li>
@@ -217,40 +275,48 @@ const JobInfo = ({  jobDetails, onApplyClick }: JobInfoProps) => {
           )}
 
           {/* Responsibilities */}
-          {jobDetails.responsibilities && jobDetails.responsibilities.length > 0 && (
-            <div className="bg-white p-4 md:p-6 rounded-lg border border-gray-200">
-              <h3 className="text-lg md:text-xl font-semibold text-blue-800 mb-3 pb-2 border-b border-gray-100">
-                Responsibilities
-              </h3>
-              <ul className="space-y-2 text-gray-700 capitalize">
-                {jobDetails.responsibilities.map((responsibility, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm md:text-base">
-                    <span className="inline-block w-2 h-2 bg-purple-600 rounded-full mt-2 flex-shrink-0"></span>
-                    <span>{responsibility}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Grid Layout for Qualifications, Skills, Education, Experience */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {/* Qualifications */}
-            {jobDetails.qualifications && jobDetails.qualifications.length > 0 && (
+          {jobDetails.responsibilities &&
+            jobDetails.responsibilities.length > 0 && (
               <div className="bg-white p-4 md:p-6 rounded-lg border border-gray-200">
                 <h3 className="text-lg md:text-xl font-semibold text-blue-800 mb-3 pb-2 border-b border-gray-100">
-                  Qualifications
+                  Responsibilities
                 </h3>
                 <ul className="space-y-2 text-gray-700 capitalize">
-                  {jobDetails.qualifications.map((qualification, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm md:text-base">
-                      <span className="inline-block w-2 h-2 bg-green-600 rounded-full mt-2 flex-shrink-0"></span>
-                      <span>{qualification}</span>
+                  {jobDetails.responsibilities.map((responsibility, index) => (
+                    <li
+                      key={index}
+                      className="flex items-start gap-2 text-sm md:text-base"
+                    >
+                      <span className="inline-block w-2 h-2 bg-purple-600 rounded-full mt-2 flex-shrink-0"></span>
+                      <span>{responsibility}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
+
+          {/* Grid Layout for Qualifications, Skills, Education, Experience */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {/* Qualifications */}
+            {jobDetails.qualifications &&
+              jobDetails.qualifications.length > 0 && (
+                <div className="bg-white p-4 md:p-6 rounded-lg border border-gray-200">
+                  <h3 className="text-lg md:text-xl font-semibold text-blue-800 mb-3 pb-2 border-b border-gray-100">
+                    Qualifications
+                  </h3>
+                  <ul className="space-y-2 text-gray-700 capitalize">
+                    {jobDetails.qualifications.map((qualification, index) => (
+                      <li
+                        key={index}
+                        className="flex items-start gap-2 text-sm md:text-base"
+                      >
+                        <span className="inline-block w-2 h-2 bg-green-600 rounded-full mt-2 flex-shrink-0"></span>
+                        <span>{qualification}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
             {/* Skills */}
             {jobDetails.skills && jobDetails.skills.length > 0 && (
@@ -260,7 +326,10 @@ const JobInfo = ({  jobDetails, onApplyClick }: JobInfoProps) => {
                 </h3>
                 <ul className="space-y-2 text-gray-700 capitalize">
                   {jobDetails.skills.map((skill, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm md:text-base">
+                    <li
+                      key={index}
+                      className="flex items-start gap-2 text-sm md:text-base"
+                    >
                       <span className="inline-block w-2 h-2 bg-indigo-600 rounded-full mt-2 flex-shrink-0"></span>
                       <span>{skill}</span>
                     </li>
@@ -277,7 +346,10 @@ const JobInfo = ({  jobDetails, onApplyClick }: JobInfoProps) => {
                 </h3>
                 <ul className="space-y-2 text-gray-700 capitalize">
                   {jobDetails.experience.map((exp, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm md:text-base">
+                    <li
+                      key={index}
+                      className="flex items-start gap-2 text-sm md:text-base"
+                    >
                       <span className="inline-block w-2 h-2 bg-red-600 rounded-full mt-2 flex-shrink-0"></span>
                       <span>{exp}</span>
                     </li>
@@ -288,24 +360,29 @@ const JobInfo = ({  jobDetails, onApplyClick }: JobInfoProps) => {
           </div>
 
           {/* Additional Details Grid */}
-          {(jobDetails.certifications?.length > 0 || jobDetails.languages?.length > 0) && (
+          {(jobDetails.certifications?.length > 0 ||
+            jobDetails.languages?.length > 0) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {/* Certifications */}
-              {jobDetails.certifications && jobDetails.certifications.length > 0 && (
-                <div className="bg-white p-4 md:p-6 rounded-lg border border-gray-200">
-                  <h3 className="text-lg md:text-xl font-semibold text-blue-800 mb-3 pb-2 border-b border-gray-100">
-                    Certifications
-                  </h3>
-                  <ul className="space-y-2 text-gray-700">
-                    {jobDetails.certifications.map((cert, index) => (
-                      <li key={index} className="flex items-start gap-2 text-sm md:text-base">
-                        <span className="inline-block w-2 h-2 bg-teal-600 rounded-full mt-2 flex-shrink-0"></span>
-                        <span>{cert}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {jobDetails.certifications &&
+                jobDetails.certifications.length > 0 && (
+                  <div className="bg-white p-4 md:p-6 rounded-lg border border-gray-200">
+                    <h3 className="text-lg md:text-xl font-semibold text-blue-800 mb-3 pb-2 border-b border-gray-100">
+                      Certifications
+                    </h3>
+                    <ul className="space-y-2 text-gray-700">
+                      {jobDetails.certifications.map((cert, index) => (
+                        <li
+                          key={index}
+                          className="flex items-start gap-2 text-sm md:text-base"
+                        >
+                          <span className="inline-block w-2 h-2 bg-teal-600 rounded-full mt-2 flex-shrink-0"></span>
+                          <span>{cert}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
               {/* Languages */}
               {jobDetails.languages && jobDetails.languages.length > 0 && (
@@ -315,7 +392,10 @@ const JobInfo = ({  jobDetails, onApplyClick }: JobInfoProps) => {
                   </h3>
                   <ul className="space-y-2 text-gray-700">
                     {jobDetails.languages.map((lang, index) => (
-                      <li key={index} className="flex items-start gap-2 text-sm md:text-base">
+                      <li
+                        key={index}
+                        className="flex items-start gap-2 text-sm md:text-base"
+                      >
                         <span className="inline-block w-2 h-2 bg-orange-600 rounded-full mt-2 flex-shrink-0"></span>
                         <span>{lang}</span>
                       </li>
@@ -330,14 +410,33 @@ const JobInfo = ({  jobDetails, onApplyClick }: JobInfoProps) => {
         {/* Right Column - Company Info and Timeline */}
         <div className="space-y-6">
           {/* Timeline Card */}
-          <div className="bg-blue-50 p-4 md:p-6 rounded-lg shadow-sm capitalize">
+          {(jobDetails.postedAt || jobDetails.expiresAt) && (
+             <div className="bg-blue-50 p-4 md:p-6 rounded-lg shadow-sm capitalize">
             <div className="flex items-center gap-2 mb-3 text-blue-800 font-medium">
               <Calendar size={18} />
               <span className="text-sm md:text-base">Timeline</span>
             </div>
-            <p className="text-sm md:text-base mb-2">Posted: <span className="font-semibold">{formatDateddmmyyy(jobDetails.postedAt)}</span></p>
-            <p className="text-sm md:text-base">Expires: <span className="font-semibold">{formatDateddmmyyy(jobDetails.expiresAt)}</span></p>
+            {jobDetails.postedAt && (
+              <p className="text-sm md:text-base mb-2">
+              Posted:{" "}
+              <span className="font-semibold">
+                {formatDateddmmyyy(jobDetails.postedAt)}
+              </span>
+            </p>
+            )}
+            
+            {jobDetails.expiresAt &&(
+              <p className="text-sm md:text-base">
+              Expires:{" "}
+              <span className="font-semibold">
+                {formatDateddmmyyy(jobDetails.expiresAt)}
+              </span>
+            </p>
+            )}
+            
           </div>
+          )}
+         
 
           {/* Company About Section */}
           {jobDetails.company?.about && (
@@ -348,22 +447,27 @@ const JobInfo = ({  jobDetails, onApplyClick }: JobInfoProps) => {
               <div className="space-y-2 mb-4 text-sm md:text-base">
                 {jobDetails.company.industry && (
                   <div>
-                    <span className="font-medium">Industry:</span> {jobDetails.company.industry}
+                    <span className="font-medium">Industry:</span>{" "}
+                    {jobDetails.company.industry}
                   </div>
                 )}
                 {jobDetails.company.rating && (
                   <div>
-                    <span className="font-medium">Rating:</span> {jobDetails.company.rating}
+                    <span className="font-medium">Rating:</span>{" "}
+                    {jobDetails.company.rating}
                   </div>
                 )}
                 {jobDetails.company.address && (
                   <div>
-                    <span className="font-medium">Location:</span> {jobDetails.company.address}
+                    <span className="font-medium">Location:</span>{" "}
+                    {jobDetails.company.address}
                   </div>
                 )}
               </div>
-              <p className="text-gray-700 text-sm md:text-base">{jobDetails.company.about}</p>
-              
+              <p className="text-gray-700 text-sm md:text-base">
+                {jobDetails.company.about}
+              </p>
+
               {jobDetails.company.website && (
                 <a
                   href={jobDetails.company.website}

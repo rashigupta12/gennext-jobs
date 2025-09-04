@@ -1384,43 +1384,53 @@ const validateResumeField = (): boolean => {
                   <span className="ml-2 text-gray-600">Uploading...</span>
                 </div>
               ) : (
-                <UploadDropzone
-                  endpoint="docUploader"
-                  onBeforeUploadBegin={(files) => {
-                    setIsUploading(true);
-                    return files;
-                  }}
-                  onClientUploadComplete={(res) => {
-                    if (res && res.length > 0) {
-                      const fileUrl = res[0].serverData.fileUrl;
-                      const uploadedFileName = res[0].name;
-                      setResumeUrl(fileUrl);
-                      setFileName(uploadedFileName);
-                      setResumeUploaded(true);
-                      onChange(fileUrl);
-                      
-                      // Clear any existing resume error
-                      form.clearErrors("resume");
-                      
-                      toast.success("Resume uploaded successfully");
+                <div className="upload-dropzone-container">
+                  <UploadDropzone
+                    endpoint="docUploader"
+                    onBeforeUploadBegin={(files) => {
+                      setIsUploading(true);
+                      return files;
+                    }}
+                    onClientUploadComplete={(res) => {
+                      if (res && res.length > 0) {
+                        const fileUrl = res[0].serverData.fileUrl;
+                        const uploadedFileName = res[0].name;
+                        setResumeUrl(fileUrl);
+                        setFileName(uploadedFileName);
+                        setResumeUploaded(true);
+                        onChange(fileUrl);
+                        
+                        // Clear any existing resume error
+                        form.clearErrors("resume");
+                        
+                        toast.success("Resume uploaded successfully");
+                      }
+                      setIsUploading(false);
+                    }}
+                    onUploadError={(error: Error) => {
+                      console.error("Upload error:", error);
+                      setFetchError("Failed to upload resume. Please try again.");
+                      setIsUploading(false);
+                      toast.error("Failed to upload resume. Please try again.");
+                    }}
+                    className="ut-button:bg-blue-600 ut-button:hover:bg-blue-700"
+                  />
+                  <style jsx>{`
+                    .upload-dropzone-container :global(.ut-allowed-content) {
+                      display: none !important;
                     }
-                    setIsUploading(false);
-                  }}
-                  onUploadError={(error: Error) => {
-                    console.error("Upload error:", error);
-                    setFetchError("Failed to upload resume. Please try again.");
-                    setIsUploading(false);
-                    toast.error("Failed to upload resume. Please try again.");
-                  }}
-                  className="ut-button:bg-blue-600 ut-button:hover:bg-blue-700"
-                />
+                    .upload-dropzone-container :global([data-ut-element="allowed-content"]) {
+                      display: none !important;
+                    }
+                  `}</style>
+                </div>
               )}
             </div>
           </FormControl>
           <FormDescription className="text-gray-600">
             {resumeUploaded
-              ? "Upload a new file to replace your current resume (PDF preferred) - Required"
-              : "Upload your resume (PDF preferred) - Required"}
+              ? "Upload a new file to replace your current resume (PDF, DOC, DOCX accepted) - Required"
+              : "Upload your resume (PDF, DOC, DOCX accepted) - Required"}
           </FormDescription>
           <FormMessage />
         </FormItem>
@@ -1466,7 +1476,7 @@ const validateResumeField = (): boolean => {
                   {/* Submit Section */}
                   {!hasApplied && (
                     <div className="mt-8 pt-6 border-t border-gray-200">
-                      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                      <div className="flex flex-row gap-4 justify-center">
                         <Button
                           type="submit"
                           disabled={isSubmitting || isUploading}
@@ -1480,7 +1490,7 @@ const validateResumeField = (): boolean => {
                           ) : (
                             <>
                               <Upload className="mr-2 h-5 w-5" />
-                              Submit Application
+                              Submit 
                             </>
                           )}
                         </Button>
@@ -1506,7 +1516,6 @@ const validateResumeField = (): boolean => {
                         </TooltipProvider>
                       </div>
 
-                      {/* Validation Messages */}
 
                       {/* Updated validation messages */}
                       <div className="mt-4 space-y-2">

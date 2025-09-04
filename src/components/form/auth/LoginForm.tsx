@@ -71,10 +71,14 @@ function LoginForm() {
           return;
         }
         if (result?.success) {
+          console.log(result)
           setSuccess(result.success);
-          toast.success("Login successful!");
+          if(result.success === "Email sent for email verification!"){
+            toast.success("Email Sent Succesfully");
+          }
+          
           if (result.redirectTo) {
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            await new Promise((resolve) => setTimeout(resolve, 100));
             window.location.href = result.redirectTo;
           }
         }

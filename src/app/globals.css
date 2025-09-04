@@ -99,3 +99,11 @@ body {
     transform: translateX(-50%);
   }
 } */
+
+/* Add this to your CSS file */
+/* Hide the specific allowed content text */
+.ut-upload-dropzone .ut-allowed-content {
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+}

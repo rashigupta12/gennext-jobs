@@ -590,7 +590,7 @@ const ProfilePage = () => {
                             className="bg-blue-600 hover:bg-blue-700 text-white"
                           >
                             <Plus className="h-4 w-4 mr-1" />
-                            Add Education
+                           
                           </Button>
                         </div>
 
@@ -647,25 +647,34 @@ const ProfilePage = () => {
                                     className="mt-1 capitalize"
                                   />
                                 </div>
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-700">
-                                    Passing Year *
-                                  </Label>
-                                  <Input
-                                    type="number"
-                                    value={entry.batch}
-                                    onChange={(e) => {
-                                      const value = e.target.value.slice(0, 4); // only 4 digits allowed
-                                      handleEducationChange(
-                                        index,
-                                        "batch",
-                                        value
-                                      ); // ✅ use trimmed value
-                                    }}
-                                    placeholder="2024"
-                                    className="mt-1 capitalize"
-                                  />
-                                </div>
+                               <div>
+  <Label className="text-sm font-medium text-gray-700">
+    Passing Year *
+  </Label>
+  <Input
+    type="text" // 👈 use "text" instead of "number" so we can fully control validation
+    inputMode="numeric" // still shows numeric keypad on mobile
+    value={entry.batch}
+    onChange={(e) => {
+      const value = e.target.value;
+
+      // Allow only digits (no minus sign, no letters) and max 4 characters
+      if (/^\d{0,4}$/.test(value)) {
+        if (value === "" || value.length < 4) {
+          handleEducationChange(index, "batch", value);
+        } else if (value.length === 4) {
+          const year = parseInt(value, 10);
+          if (year >= 1900 && year <= 2099) {
+            handleEducationChange(index, "batch", value);
+          }
+        }
+      }
+    }}
+    placeholder="2024"
+    className="mt-1 capitalize"
+  />
+</div>
+
                               </div>
                             </div>
                           ))}
@@ -673,56 +682,58 @@ const ProfilePage = () => {
                       </div>
 
                       {/* Resume Upload */}
-                      <div className="bg-gray-50 px-6 py-2 rounded-lg">
-                        <h3 className="text-xl font-semibold mb-6 flex items-center gap-2 text-gray-800">
-                          <FileText className="h-5 w-5 text-blue-600" />
-                          Resume Document
-                        </h3>
-                        <div className="space-y-4">
-                          <div>
-                            <Label
-                              htmlFor="resumeUrl"
-                              className="text-sm font-medium text-gray-700"
-                            >
-                              Resume Link 
-                            </Label>
-                            <Input
-                              id="resumeUrl"
-                              name="resumeUrl"
-                              value={formData.resumeUrl}
-                              onChange={handleInputChange}
-                              placeholder="Paste your resume link here"
-                              className="mt-1"
-                            />
-                          </div>
-                          <div className="text-center border-2 border-dashed border-gray-300 rounded-lg">
-                            <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-600 mb-2">
-                              Or upload your resume
-                            </p>
-                            <UploadButton
-                              endpoint="docUploader"
-                              appearance={{
-                                button:
-                                  "bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md",
-                                allowedContent: "text-xs text-gray-500",
-                              }}
-                              onClientUploadComplete={(res) => {
-                                if (res && res.length > 0) {
-                                  const fileUrl = res[0].serverData.fileUrl;
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    resumeUrl: fileUrl,
-                                  }));
-                                }
-                              }}
-                              onUploadError={(error: Error) => {
-                                console.error("Error uploading resume:", error);
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
+<div className="bg-gray-50 px-6 py-2 rounded-lg">
+  <h3 className="text-xl font-semibold mb-6 flex items-center gap-2 text-gray-800">
+    <FileText className="h-5 w-5 text-blue-600" />
+    Resume Document
+  </h3>
+  <div className="space-y-4">
+    <div>
+      <Label
+        htmlFor="resumeUrl"
+        className="text-sm font-medium text-gray-700"
+      >
+        Resume Link 
+      </Label>
+      <Input
+        id="resumeUrl"
+        name="resumeUrl"
+        value={formData.resumeUrl}
+        onChange={handleInputChange}
+        placeholder="Paste your resume link here"
+        className="mt-1"
+      />
+    </div>
+    <div className="text-center border-2 border-dashed border-gray-300 rounded-lg p-6">
+      <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+      <p className="text-sm text-gray-600 mb-2">
+        Or upload your resume
+      </p>
+      <div className="upload-button-container">
+        <UploadButton
+          endpoint="docUploader"
+          appearance={{
+            button:
+              "bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md",
+            allowedContent: "hidden", // This might help
+          }}
+          onClientUploadComplete={(res) => {
+            if (res && res.length > 0) {
+              const fileUrl = res[0].serverData.fileUrl;
+              setFormData((prev) => ({
+                ...prev,
+                resumeUrl: fileUrl,
+              }));
+            }
+          }}
+          onUploadError={(error: Error) => {
+            console.error("Error uploading resume:", error);
+          }}
+        />
+      </div>
+    </div>
+  </div>
+</div>
                     </div>
 
                     {/* Right Column */}
@@ -741,7 +752,7 @@ const ProfilePage = () => {
                             className="bg-blue-600 hover:bg-blue-700 text-white"
                           >
                             <Plus className="h-4 w-4 mr-1" />
-                            Add Experience
+                           
                           </Button>
                         </div>
 
