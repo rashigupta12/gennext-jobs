@@ -66,7 +66,7 @@ export async function registerUser(values: z.infer<typeof RegisterUserSchema>) {
           <!-- Heading -->
           <tr>
             <td align="center" style="padding:10px 0; border-bottom:1px solid #e0e0e0;">
-              <h1 style="margin:0; font-size:22px; font-weight:600; color:#222;">Reset Your Password</h1>
+              <h1 style="margin:0; font-size:22px; font-weight:600; color:#222;"> Verify your Email</h1>
             </td>
           </tr>
 
@@ -74,12 +74,12 @@ export async function registerUser(values: z.infer<typeof RegisterUserSchema>) {
           <tr>
             <td style="padding:20px; font-size:15px; line-height:1.6; color:#444;">
               <p>Hello,</p>
-              <p>We received a request to reset your password. You can set a new password by clicking the button below:</p>
+              <p>We received a request to Verify your account. </p>
 
               <div style="text-align:center; margin:30px 0;">
                 <a href="${url}" 
                    style="background:#0066cc; color:#fff; text-decoration:none; padding:12px 24px; border-radius:6px; font-weight:bold; display:inline-block;">
-                  Reset My Password
+                  Verify Your Email
                 </a>
               </div>
 
@@ -87,7 +87,7 @@ export async function registerUser(values: z.infer<typeof RegisterUserSchema>) {
               <p style="word-break:break-all; color:#0066cc;">${url}</p>
 
               <p>This reset link will expire in 24 hours.</p>
-              <p>If you did not request a password reset, you can safely ignore this email.</p>
+              <p>If you did not request a verify email, you can safely ignore this email.</p>
 
               <p style="margin-top:20px;">Best regards,<br>The ${Details.name} Team</p>
             </td>
