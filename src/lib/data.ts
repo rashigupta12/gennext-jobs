@@ -17,7 +17,7 @@ export interface Registerpageimage{
 }
 export const Details: Details = {
   name: "Gennext IT",
-  phone: "+91-78400 79095",
+  phone: "",
   email: "info@gennextit.com",
   address: "H-213, Electronic City, H Block, Sector 63, Noida, Uttar Pradesh 201309",
   logoUrl: "https://1wo6ua3kj0.ufs.sh/f/UdP0ZPpr4Tf5yIg4GSXv8fIKH9sGwdAFgcmbRQh6ZDVYkix3", // keep your logo in /public/images/
