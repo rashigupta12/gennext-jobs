@@ -4,7 +4,16 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Award, Briefcase, FileText, Plus, Settings, Trash2, Upload, Loader2 } from "lucide-react";
+import {
+  Award,
+  Briefcase,
+  FileText,
+  Plus,
+  Settings,
+  Trash2,
+  Upload,
+  Loader2,
+} from "lucide-react";
 import { z } from "zod";
 // Import UI components
 import {
@@ -24,11 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -40,9 +45,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
-  Select, SelectContent,
-  SelectItem, SelectTrigger,
-  SelectValue
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -147,20 +154,16 @@ const JobListingForm: React.FC = () => {
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [showSubcategoryDialog, setShowSubcategoryDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [jdText, setJdText] = useState("");
-const [isParsingJD, setIsParsingJD] = useState(false);
-const [showJDUpload, setShowJDUpload] = useState(false);
+  const [isParsingJD, setIsParsingJD] = useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
-  const [showConfirmParsingDialog, setShowConfirmParsingDialog] = useState(false);
-  const [parsedData, setParsedData] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const {toast} = useToast();
-  
+  const { toast } = useToast();
+
   // Get the session object
   const session = useSession();
   const userId = session?.data?.user?.id;
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Form setup
   const form = useForm({
     resolver: zodResolver(jobListingSchema),
@@ -194,12 +197,12 @@ const [showJDUpload, setShowJDUpload] = useState(false);
   const [arrayInputs, setArrayInputs] = useState({
     highlights: "",
     qualifications: "",
-    skills: ""
+    skills: "",
   });
 
   // Watch categoryId for subcategory loading
   const categoryId = useWatch({ control: form.control, name: "categoryId" });
-  
+
   useEffect(() => {
     if (subcategories.length > 0) {
       setIsLoading(false);
@@ -278,11 +281,11 @@ const [showJDUpload, setShowJDUpload] = useState(false);
 
     const currentArray = form.getValues(fieldName) || [];
     form.setValue(fieldName, [...currentArray, value.trim()]);
-    
+
     // Clear the input using controlled state
-    setArrayInputs(prev => ({
+    setArrayInputs((prev) => ({
       ...prev,
-      [fieldName]: ""
+      [fieldName]: "",
     }));
   };
 
@@ -307,118 +310,120 @@ const [showJDUpload, setShowJDUpload] = useState(false);
 
   // Handle Enter key press to prevent form submission
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
     }
   };
-const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-  const file = event.target.files?.[0];
-  if (!file) return;
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  // Check file type
-  const fileExtension = file.name.split('.').pop()?.toLowerCase();
-  const validExtensions = ['txt', 'doc', 'docx', 'pdf'];
-  
-  if (!fileExtension || !validExtensions.includes(fileExtension)) {
-    toast({
-      title: "Error",
-      description: "Please upload a .txt, .doc, .docx, or .pdf file",
-      variant: "destructive",
-    });
-    return;
-  }
+    // Check file type
+    const fileExtension = file.name.split(".").pop()?.toLowerCase();
+    const validExtensions = ["txt", "doc", "docx", "pdf"];
 
-  // Check file size (max 5MB)
-  if (file.size > 5 * 1024 * 1024) {
-    toast({
-      title: "Error",
-      description: "File size must be less than 5MB",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  try {
-    setIsParsingJD(true);
-    let text = '';
-
-    if (fileExtension === 'txt') {
-      // Handle .txt files
-      text = await file.text();
-    } else if (fileExtension === 'docx' || fileExtension === 'doc') {
-      // Handle Word files using mammoth
-      const mammoth = await import('mammoth');
-      const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.extractRawText({ arrayBuffer });
-      text = result.value;
-    } else if (fileExtension === 'pdf') {
-      // Handle PDF files using pdf.js
-      const pdfjsLib = await import('pdfjs-dist');
-      
-      // Set worker path
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-      
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      
-      // Extract text from all pages
-      const textPromises = [];
-      for (let i = 1; i <= pdf.numPages; i++) {
-        textPromises.push(
-          pdf.getPage(i).then(page => 
-            page.getTextContent().then(content => 
-              content.items.map((item: any) => item.str).join(' ')
-            )
-          )
-        );
-      }
-      
-      const pages = await Promise.all(textPromises);
-      text = pages.join('\n\n');
-    }
-
-    console.log('File loaded, length:', text.length);
-    
-    if (!text.trim()) {
+    if (!fileExtension || !validExtensions.includes(fileExtension)) {
       toast({
         title: "Error",
-        description: "The file appears to be empty or couldn't be read",
+        description: "Please upload a .txt, .doc, .docx, or .pdf file",
         variant: "destructive",
       });
-      setIsParsingJD(false);
       return;
     }
 
-    // Auto-parse the JD after file upload
-    await handleParseJD(text);
-    
-  } catch (error) {
-    console.error('Error reading file:', error);
-    toast({
-      title: "Error",
-      description: "Failed to read file. Please try a different format.",
-      variant: "destructive",
-    });
-    setIsParsingJD(false);
-  }
-};
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "File size must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
 
-// Replace the handleParseJD function with this new version
-const handleParseJD = async (text?: string) => {
-  const jdTextToParse = text || jdText;
-  
-  if (!jdTextToParse.trim()) {
+    try {
+      setIsParsingJD(true);
+      let text = "";
+
+      if (fileExtension === "txt") {
+        // Handle .txt files
+        text = await file.text();
+      } else if (fileExtension === "docx" || fileExtension === "doc") {
+        // Handle Word files using mammoth
+        const mammoth = await import("mammoth");
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        text = result.value;
+      } else if (fileExtension === "pdf") {
+        // Handle PDF files using pdf.js
+        const pdfjsLib = await import("pdfjs-dist");
+
+        // Set worker path
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+        // Extract text from all pages
+        const textPromises = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+          textPromises.push(
+            pdf
+              .getPage(i)
+              .then((page) =>
+                page
+                  .getTextContent()
+                  .then((content) =>
+                    content.items.map((item: any) => item.str).join(" ")
+                  )
+              )
+          );
+        }
+
+        const pages = await Promise.all(textPromises);
+        text = pages.join("\n\n");
+      }
+
+      console.log("File loaded, length:", text.length);
+
+      if (!text.trim()) {
+        toast({
+          title: "Error",
+          description: "The file appears to be empty or couldn't be read",
+          variant: "destructive",
+        });
+        setIsParsingJD(false);
+        return;
+      }
+
+      // Auto-parse the JD after file upload
+      await handleParseJD(text);
+    } catch (error) {
+      console.error("Error reading file:", error);
+      toast({
+        title: "Error",
+        description: "Failed to read file. Please try a different format.",
+        variant: "destructive",
+      });
+      setIsParsingJD(false);
+    }
+  };
+
+  // Replace the handleParseJD function with this new version
+  const handleParseJD = async (text?: string) => {
+  const jdTextToParse = text;
+
+  if (!jdTextToParse?.trim()) {
     toast({
       title: "Error",
-      description: "Please enter or upload a job description",
+      description: "Please upload a job description",
       variant: "destructive",
     });
     return;
   }
 
-  console.log("Starting to parse JD...");
-  console.log("JD Text length:", jdTextToParse.length);
-  
   setIsParsingJD(true);
   try {
     const response = await fetch("/api/parse-jd", {
@@ -429,23 +434,38 @@ const handleParseJD = async (text?: string) => {
       body: JSON.stringify({ jdText: jdTextToParse }),
     });
 
-    console.log("Response status:", response.status);
-
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("API Error:", errorData);
       throw new Error(errorData.error || "Failed to parse job description");
     }
 
     const result = await response.json();
-    console.log("Full API result:", result);
-    console.log("Parsed data:", result.data);
-    
     const parsedData = result.data;
 
-    // Store parsed data and show confirmation dialog
-    setParsedData(parsedData);
-    
+    // Directly autofill the form
+    if (parsedData.title) form.setValue("title", parsedData.title);
+    if (parsedData.location) form.setValue("location", parsedData.location);
+    if (parsedData.salary) form.setValue("salary", parsedData.salary);
+    if (parsedData.employmentType) form.setValue("employmentType", parsedData.employmentType);
+    if (parsedData.department) form.setValue("department", parsedData.department);
+    if (parsedData.description) form.setValue("description", parsedData.description);
+    if (parsedData.education) form.setValue("education", parsedData.education);
+    if (parsedData.startDate) form.setValue("startDate", parsedData.startDate);
+    if (parsedData.openings) form.setValue("openings", parsedData.openings);
+    if (parsedData.highlights?.length > 0) form.setValue("highlights", parsedData.highlights);
+    if (parsedData.qualifications?.length > 0) form.setValue("qualifications", parsedData.qualifications);
+    if (parsedData.skills?.length > 0) form.setValue("skills", parsedData.skills);
+
+    // Generate slug
+    if (parsedData.title) {
+      const slug = parsedData.title.toLowerCase().replace(/\s+/g, "-");
+      form.setValue("slug", slug);
+    }
+
+    toast({
+      title: "Success",
+      description: "Job description parsed and form auto-filled successfully!",
+    });
   } catch (error) {
     console.error("Error parsing JD:", error);
     toast({
@@ -458,111 +478,6 @@ const handleParseJD = async (text?: string) => {
   }
 };
 
-
-
-
-//  const handleParseJD = async () => {
-//   if (!jdText.trim()) {
-//     toast({
-//       title: "Error",
-//       description: "Please enter or upload a job description",
-//       variant: "destructive",
-//     });
-//     return;
-//   }
-
-//   console.log("Starting to parse JD..."); // DEBUG
-//   console.log("JD Text length:", jdText.length); // DEBUG
-  
-//   setIsParsingJD(true);
-//   try {
-//     const response = await fetch("/api/parse-jd", {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify({ jdText }),
-//     });
-
-//     console.log("Response status:", response.status); // DEBUG
-
-//     if (!response.ok) {
-//       const errorData = await response.json();
-//       console.error("API Error:", errorData); // DEBUG
-//       throw new Error(errorData.error || "Failed to parse job description");
-//     }
-
-//     const result = await response.json();
-//     console.log("Full API result:", result); // DEBUG
-//     console.log("Parsed data:", result.data); // DEBUG
-    
-//     const parsedData = result.data;
-
-//     // Populate form fields with detailed logging
-//     if (parsedData.title) {
-//       console.log("Setting title:", parsedData.title); // DEBUG
-//       form.setValue("title", parsedData.title);
-//     }
-//     if (parsedData.location) {
-//       console.log("Setting location:", parsedData.location); // DEBUG
-//       form.setValue("location", parsedData.location);
-//     }
-//     if (parsedData.salary) {
-//       console.log("Setting salary:", parsedData.salary); // DEBUG
-//       form.setValue("salary", parsedData.salary);
-//     }
-//     if (parsedData.employmentType) {
-//       console.log("Setting employmentType:", parsedData.employmentType); // DEBUG
-//       form.setValue("employmentType", parsedData.employmentType);
-//     }
-//     if (parsedData.department) form.setValue("department", parsedData.department);
-//     if (parsedData.description) form.setValue("description", parsedData.description);
-//     if (parsedData.education) form.setValue("education", parsedData.education);
-//     if (parsedData.startDate) form.setValue("startDate", parsedData.startDate);
-//     if (parsedData.openings) form.setValue("openings", parsedData.openings);
-    
-//     // Handle array fields
-//     if (parsedData.highlights?.length > 0) {
-//       console.log("Setting highlights:", parsedData.highlights); // DEBUG
-//       form.setValue("highlights", parsedData.highlights);
-//     }
-//     if (parsedData.qualifications?.length > 0) {
-//       console.log("Setting qualifications:", parsedData.qualifications); // DEBUG
-//       form.setValue("qualifications", parsedData.qualifications);
-//     }
-//     if (parsedData.skills?.length > 0) {
-//       console.log("Setting skills:", parsedData.skills); // DEBUG
-//       form.setValue("skills", parsedData.skills);
-//     }
-
-//     // Generate slug
-//     if (parsedData.title) {
-//       const slug = parsedData.title.toLowerCase().replace(/\s+/g, "-");
-//       form.setValue("slug", slug);
-//     }
-
-//     console.log("All values set successfully!"); // DEBUG
-
-//     setShowJDUpload(false);
-//     setJdText("");
-    
-//     toast({
-//       title: "Success",
-//       description: "Job description parsed successfully!",
-//     });
-//   } catch (error) {
-//     console.error("Error parsing JD:", error); // DEBUG
-//     toast({
-//       title: "Error",
-//       description: error instanceof Error ? error.message : "Failed to parse job description. Please try again.",
-//       variant: "destructive",
-//     });
-//   } finally {
-//     setIsParsingJD(false);
-//   }
-// };
-
-
   // Handle form submission with confirmation
   const handleSubmit = (data: z.infer<typeof jobListingSchema>) => {
     setPendingFormData(data);
@@ -572,7 +487,7 @@ const handleParseJD = async (text?: string) => {
   // Actual form submission after confirmation
   const onConfirmedSubmit = async () => {
     if (!pendingFormData) return;
-    
+
     try {
       const response = await fetch("/api/job-listing", {
         method: "POST",
@@ -602,7 +517,7 @@ const handleParseJD = async (text?: string) => {
       setArrayInputs({
         highlights: "",
         qualifications: "",
-        skills: ""
+        skills: "",
       });
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -619,7 +534,7 @@ const handleParseJD = async (text?: string) => {
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return;
-    
+
     setIsSubmitting(true);
     try {
       const response = await fetch("/api/categories", {
@@ -628,30 +543,30 @@ const handleParseJD = async (text?: string) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: newCategoryName.trim()
+          name: newCategoryName.trim(),
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create category');
+        throw new Error("Failed to create category");
       }
 
       const newCategoryResponse = await response.json();
-        const newCategory = newCategoryResponse.category; 
-      setCategories(prev => [...prev, newCategory]);
-      
+      const newCategory = newCategoryResponse.category;
+      setCategories((prev) => [...prev, newCategory]);
+
       // Set the newly created category as selected
       form.setValue("categoryId", newCategory.id);
-      
+
       setNewCategoryName("");
       setShowCategoryDialog(false);
-      
+
       toast({
         title: "Success",
         description: "Category created successfully!",
       });
     } catch (error) {
-      console.error('Error creating category:', error);
+      console.error("Error creating category:", error);
       toast({
         title: "Error",
         description: "Failed to create category",
@@ -662,69 +577,10 @@ const handleParseJD = async (text?: string) => {
     }
   };
 
-  const handleConfirmParsedData = () => {
-  if (!parsedData) return;
-
-  console.log("Applying parsed data to form...");
-
-  // Populate form fields with parsed data
-  if (parsedData.title) {
-    console.log("Setting title:", parsedData.title);
-    form.setValue("title", parsedData.title);
-  }
-  if (parsedData.location) {
-    console.log("Setting location:", parsedData.location);
-    form.setValue("location", parsedData.location);
-  }
-  if (parsedData.salary) {
-    console.log("Setting salary:", parsedData.salary);
-    form.setValue("salary", parsedData.salary);
-  }
-  if (parsedData.employmentType) {
-    console.log("Setting employmentType:", parsedData.employmentType);
-    form.setValue("employmentType", parsedData.employmentType);
-  }
-  if (parsedData.department) form.setValue("department", parsedData.department);
-  if (parsedData.description) form.setValue("description", parsedData.description);
-  if (parsedData.education) form.setValue("education", parsedData.education);
-  if (parsedData.startDate) form.setValue("startDate", parsedData.startDate);
-  if (parsedData.openings) form.setValue("openings", parsedData.openings);
-  
-  // Handle array fields
-  if (parsedData.highlights?.length > 0) {
-    console.log("Setting highlights:", parsedData.highlights);
-    form.setValue("highlights", parsedData.highlights);
-  }
-  if (parsedData.qualifications?.length > 0) {
-    console.log("Setting qualifications:", parsedData.qualifications);
-    form.setValue("qualifications", parsedData.qualifications);
-  }
-  if (parsedData.skills?.length > 0) {
-    console.log("Setting skills:", parsedData.skills);
-    form.setValue("skills", parsedData.skills);
-  }
-
-  // Generate slug
-  if (parsedData.title) {
-    const slug = parsedData.title.toLowerCase().replace(/\s+/g, "-");
-    form.setValue("slug", slug);
-  }
-
-  console.log("All values set successfully!");
-
-  
-  setJdText("");
-  setParsedData(null);
-  
-  toast({
-    title: "Success",
-    description: "Job description parsed and fields auto-filled!",
-  });
-};
 
   const handleCreateSubcategory = async () => {
     if (!newSubcategoryName.trim() || !form.watch("categoryId")) return;
-    
+
     setIsSubmitting(true);
     try {
       const response = await fetch("/api/subCategories", {
@@ -734,29 +590,29 @@ const handleParseJD = async (text?: string) => {
         },
         body: JSON.stringify({
           name: newSubcategoryName.trim(),
-          categoryId: form.watch("categoryId")
+          categoryId: form.watch("categoryId"),
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create subcategory');
+        throw new Error("Failed to create subcategory");
       }
 
       const newSubcategory = await response.json();
-      setSubcategories(prev => [...prev, newSubcategory]);
-      
+      setSubcategories((prev) => [...prev, newSubcategory]);
+
       // Set the newly created subcategory as selected
       form.setValue("subcategoryId", newSubcategory.id);
-      
+
       setNewSubcategoryName("");
       setShowSubcategoryDialog(false);
-      
+
       toast({
         title: "Success",
         description: "Subcategory created successfully!",
       });
     } catch (error) {
-      console.error('Error creating subcategory:', error);
+      console.error("Error creating subcategory:", error);
       toast({
         title: "Error",
         description: "Failed to create subcategory",
@@ -768,10 +624,10 @@ const handleParseJD = async (text?: string) => {
   };
 
   // Fixed Array field component with controlled inputs
-  const ArrayFieldSection = ({ 
-    title, 
-    fieldName, 
-    placeholder
+  const ArrayFieldSection = ({
+    title,
+    fieldName,
+    placeholder,
   }: {
     title: string;
     fieldName: "highlights" | "qualifications" | "skills";
@@ -782,14 +638,16 @@ const handleParseJD = async (text?: string) => {
       <div className="flex gap-2">
         <Input
           value={arrayInputs[fieldName]}
-          onChange={(e) => setArrayInputs(prev => ({
-            ...prev,
-            [fieldName]: e.target.value
-          }))}
+          onChange={(e) =>
+            setArrayInputs((prev) => ({
+              ...prev,
+              [fieldName]: e.target.value,
+            }))
+          }
           placeholder={placeholder}
           className="flex-1"
           onKeyPress={(e) => {
-            if (e.key === 'Enter') {
+            if (e.key === "Enter") {
               e.preventDefault();
               addItemToArray(fieldName, arrayInputs[fieldName]);
             }
@@ -828,11 +686,10 @@ const handleParseJD = async (text?: string) => {
     <>
       <div className="w-full max-w-full mx-auto ">
         <Card className="w-full">
-<CardHeader className="pb-2">
+         <CardHeader className="pb-2">
   <div className="flex justify-between items-center">
     <h2 className="text-2xl font-bold">Create Job Listing</h2>
     <div className="flex gap-2">
-      {/* Hidden file input that gets triggered by the button */}
       <input
         id="jd-file-upload"
         type="file"
@@ -845,7 +702,9 @@ const handleParseJD = async (text?: string) => {
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => document.getElementById('jd-file-upload')?.click()}
+        onClick={() =>
+          document.getElementById("jd-file-upload")?.click()
+        }
         disabled={isParsingJD}
       >
         {isParsingJD ? (
@@ -855,243 +714,14 @@ const handleParseJD = async (text?: string) => {
         )}
         {isParsingJD ? "Parsing..." : "Upload JD"}
       </Button>
-      
-      {/* <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => setShowJDUpload(!showJDUpload)}
-      >
-        <FileText className="h-4 w-4 mr-2" />
-        Paste Text
-      </Button> */}
     </div>
   </div>
-  
-  {/* Only show the textarea for manual pasting */}
-  {showJDUpload && (
-    <div className="mt-4 p-4 border rounded-lg bg-slate-50 space-y-3">
-      <div className="flex justify-between items-center">
-        <label className="text-sm font-medium text-slate-700">Paste Job Description</label>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setShowJDUpload(false);
-            setJdText("");
-          }}
-        >
-          Close
-        </Button>
-      </div>
-      
-      <Textarea
-        placeholder="Paste the complete job description here..."
-        value={jdText}
-        onChange={(e) => setJdText(e.target.value)}
-        className="min-h-[150px] text-sm"
-      />
-      <Button
-        type="button"
-        size="sm"
-        onClick={() => handleParseJD()}
-        disabled={isParsingJD || !jdText.trim()}
-        className="w-full"
-      >
-        {isParsingJD ? (
-          <>
-            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-            Parsing...
-          </>
-        ) : (
-          <>
-            <FileText className="h-3 w-3 mr-1" />
-            Parse Pasted Text
-          </>
-        )}
-      </Button>
-    </div>
-  )}
-
-  {/* Show parsed data in editable form */}
-  {parsedData && (
-    <div className="mt-4 p-4 border rounded-lg bg-blue-50 max-h-96 overflow-y-auto">
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="text-sm font-medium text-blue-800">Edit Parsed Job Details</h3>
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleConfirmParsedData}
-            className="bg-blue-600 hover:bg-blue-700 text-xs h-7"
-          >
-            Confirm
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setParsedData(null);
-              setJdText("");
-            }}
-            className="text-xs h-7"
-          >
-            Discard
-          </Button>
-        </div>
-      </div>
-      
-      <div className="space-y-3 text-sm">
-        {/* Single line text fields */}
-        <div>
-          <label className="block text-xs font-medium text-blue-700 mb-1">Job Title</label>
-          <input
-            type="text"
-            value={parsedData.title || ''}
-            onChange={(e) => setParsedData({...parsedData, title: e.target.value})}
-            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
-            placeholder="Enter job title"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-blue-700 mb-1">Location</label>
-          <input
-            type="text"
-            value={parsedData.location || ''}
-            onChange={(e) => setParsedData({...parsedData, location: e.target.value})}
-            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
-            placeholder="Enter location"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-blue-700 mb-1">Salary</label>
-          <input
-            type="text"
-            value={parsedData.salary || ''}
-            onChange={(e) => setParsedData({...parsedData, salary: e.target.value})}
-            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
-            placeholder="Enter salary range"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-blue-700 mb-1">Employment Type</label>
-          <input
-            type="text"
-            value={parsedData.employmentType || ''}
-            onChange={(e) => setParsedData({...parsedData, employmentType: e.target.value})}
-            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
-            placeholder="e.g., Full-time, Part-time, Contract"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-blue-700 mb-1">Department</label>
-          <input
-            type="text"
-            value={parsedData.department || ''}
-            onChange={(e) => setParsedData({...parsedData, department: e.target.value})}
-            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
-            placeholder="Enter department"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-blue-700 mb-1">Number of Openings</label>
-          <input
-            type="number"
-            value={parsedData.openings || ''}
-            onChange={(e) => setParsedData({...parsedData, openings: e.target.value})}
-            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
-            placeholder="Enter number of openings"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-blue-700 mb-1">Education Requirements</label>
-          <input
-            type="text"
-            value={parsedData.education || ''}
-            onChange={(e) => setParsedData({...parsedData, education: e.target.value})}
-            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
-            placeholder="Enter education requirements"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-blue-700 mb-1">Start Date</label>
-          <input
-            type="text"
-            value={parsedData.startDate || ''}
-            onChange={(e) => setParsedData({...parsedData, startDate: e.target.value})}
-            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
-            placeholder="Enter start date"
-          />
-        </div>
-
-        {/* Array fields - editable textareas with comma separation */}
-        <div>
-          <label className="block text-xs font-medium text-blue-700 mb-1">Highlights (comma separated)</label>
-          <textarea
-            value={parsedData.highlights?.join(', ') || ''}
-            onChange={(e) => setParsedData({
-              ...parsedData, 
-              highlights: e.target.value.split(',').map(item => item.trim()).filter(item => item)
-            })}
-            className="w-full p-2 border border-blue-200 rounded text-sm bg-white min-h-[60px]"
-            placeholder="Enter highlights separated by commas"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-blue-700 mb-1">Qualifications (comma separated)</label>
-          <textarea
-            value={parsedData.qualifications?.join(', ') || ''}
-            onChange={(e) => setParsedData({
-              ...parsedData, 
-              qualifications: e.target.value.split(',').map(item => item.trim()).filter(item => item)
-            })}
-            className="w-full p-2 border border-blue-200 rounded text-sm bg-white min-h-[60px]"
-            placeholder="Enter qualifications separated by commas"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-blue-700 mb-1">Skills (comma separated)</label>
-          <textarea
-            value={parsedData.skills?.join(', ') || ''}
-            onChange={(e) => setParsedData({
-              ...parsedData, 
-              skills: e.target.value.split(',').map(item => item.trim()).filter(item => item)
-            })}
-            className="w-full p-2 border border-blue-200 rounded text-sm bg-white min-h-[60px]"
-            placeholder="Enter skills separated by commas"
-          />
-        </div>
-
-        {/* Description field - full editable textarea */}
-        <div>
-          <label className="block text-xs font-medium text-blue-700 mb-1">Job Description</label>
-          <textarea
-            value={parsedData.description || ''}
-            onChange={(e) => setParsedData({...parsedData, description: e.target.value})}
-            className="w-full p-2 border border-blue-200 rounded text-sm bg-white min-h-[80px]"
-            placeholder="Enter job description"
-          />
-        </div>
-      </div>
-    </div>
-  )}
 </CardHeader>
 
           <CardContent>
             <Form {...form}>
-              <form 
-                onSubmit={form.handleSubmit(handleSubmit)} 
+              <form
+                onSubmit={form.handleSubmit(handleSubmit)}
                 className="space-y-4"
                 onKeyDown={handleKeyPress}
               >
@@ -1160,7 +790,11 @@ const handleParseJD = async (text?: string) => {
                           <FormLabel>Company*</FormLabel>
                           <FormControl>
                             <Input
-                              value={companies.length > 0 ? companies[0].name : "Loading..."}
+                              value={
+                                companies.length > 0
+                                  ? companies[0].name
+                                  : "Loading..."
+                              }
                               disabled={true}
                             />
                           </FormControl>
@@ -1176,7 +810,10 @@ const handleParseJD = async (text?: string) => {
                         <FormItem>
                           <FormLabel>Category*</FormLabel>
                           <div className="flex gap-2">
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                            >
                               <FormControl>
                                 <SelectTrigger className="flex-1">
                                   <SelectValue placeholder="Select a category" />
@@ -1184,7 +821,10 @@ const handleParseJD = async (text?: string) => {
                               </FormControl>
                               <SelectContent>
                                 {categories.map((category) => (
-                                  <SelectItem key={`category-${category.id}`} value={category.id}>
+                                  <SelectItem
+                                    key={`category-${category.id}`}
+                                    value={category.id}
+                                  >
                                     {category.name}
                                   </SelectItem>
                                 ))}
@@ -1234,12 +874,19 @@ const handleParseJD = async (text?: string) => {
                               <SelectContent>
                                 {subcategories.length > 0 ? (
                                   subcategories.map((subcategory) => (
-                                    <SelectItem key={`subcategory-${subcategory.id}`} value={subcategory.id}>
+                                    <SelectItem
+                                      key={`subcategory-${subcategory.id}`}
+                                      value={subcategory.id}
+                                    >
                                       {subcategory.name}
                                     </SelectItem>
                                   ))
                                 ) : (
-                                  <SelectItem key="none-subcategory" value="none" disabled>
+                                  <SelectItem
+                                    key="none-subcategory"
+                                    value="none"
+                                    disabled
+                                  >
                                     {form.watch("categoryId")
                                       ? "No subcategories available"
                                       : "Select a category first"}
@@ -1298,7 +945,9 @@ const handleParseJD = async (text?: string) => {
                               min="1"
                               {...field}
                               onChange={(e) =>
-                                field.onChange(parseInt(e.target.value, 10) || 1)
+                                field.onChange(
+                                  parseInt(e.target.value, 10) || 1
+                                )
                               }
                             />
                           </FormControl>
@@ -1314,14 +963,17 @@ const handleParseJD = async (text?: string) => {
                         <FormItem>
                           <FormLabel>Location</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g. New York, Remote" {...field} />
+                            <Input
+                              placeholder="e.g. New York, Remote"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
-                    <SalaryInputFieldNew form={form} name="salary"/>
+                    <SalaryInputFieldNew form={form} name="salary" />
 
                     <FormField
                       control={form.control}
@@ -1330,7 +982,10 @@ const handleParseJD = async (text?: string) => {
                         <FormItem>
                           <FormLabel>Start Date</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g. Immediate, Feb 2025" {...field} />
+                            <Input
+                              placeholder="e.g. Immediate, Feb 2025"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1344,7 +999,10 @@ const handleParseJD = async (text?: string) => {
                         <FormItem>
                           <FormLabel>Department</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g. Engineering, Marketing" {...field} />
+                            <Input
+                              placeholder="e.g. Engineering, Marketing"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1358,7 +1016,10 @@ const handleParseJD = async (text?: string) => {
                         <FormItem className="xl:col-span-2">
                           <FormLabel>Education Requirements</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g. Bachelor's in Computer Science" {...field} />
+                            <Input
+                              placeholder="e.g. Bachelor's in Computer Science"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1377,7 +1038,9 @@ const handleParseJD = async (text?: string) => {
                               {...field}
                               value={
                                 field.value
-                                  ? new Date(field.value).toISOString().slice(0, 16)
+                                  ? new Date(field.value)
+                                      .toISOString()
+                                      .slice(0, 16)
                                   : ""
                               }
                               onChange={(e) => {
@@ -1447,7 +1110,10 @@ const handleParseJD = async (text?: string) => {
                               </FormDescription>
                             </div>
                             <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
                             </FormControl>
                           </FormItem>
                         )}
@@ -1465,7 +1131,10 @@ const handleParseJD = async (text?: string) => {
                               </FormDescription>
                             </div>
                             <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
                             </FormControl>
                           </FormItem>
                         )}
@@ -1476,7 +1145,12 @@ const handleParseJD = async (text?: string) => {
 
                 {/* Mobile Accordion View */}
                 <div className="md:hidden">
-                  <Accordion type="single" collapsible className="w-full " defaultValue="basic">
+                  <Accordion
+                    type="single"
+                    collapsible
+                    className="w-full "
+                    defaultValue="basic"
+                  >
                     <AccordionItem value="basic">
                       <AccordionTrigger>
                         <div className="flex items-center gap-2">
@@ -1492,7 +1166,10 @@ const handleParseJD = async (text?: string) => {
                             <FormItem>
                               <FormLabel>Job Title*</FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g. Senior Frontend Developer" {...field} />
+                                <Input
+                                  placeholder="e.g. Senior Frontend Developer"
+                                  {...field}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1535,7 +1212,11 @@ const handleParseJD = async (text?: string) => {
                               <FormLabel>Company*</FormLabel>
                               <FormControl>
                                 <Input
-                                  value={companies.length > 0 ? companies[0].name : "Loading..."}
+                                  value={
+                                    companies.length > 0
+                                      ? companies[0].name
+                                      : "Loading..."
+                                  }
                                   disabled={true}
                                 />
                               </FormControl>
@@ -1551,7 +1232,10 @@ const handleParseJD = async (text?: string) => {
                             <FormItem>
                               <FormLabel>Category*</FormLabel>
                               <div className="flex gap-2">
-                                <Select onValueChange={field.onChange} value={field.value}>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value}
+                                >
                                   <FormControl>
                                     <SelectTrigger className="flex-1">
                                       <SelectValue placeholder="Select a category" />
@@ -1559,7 +1243,10 @@ const handleParseJD = async (text?: string) => {
                                   </FormControl>
                                   <SelectContent>
                                     {categories.map((category) => (
-                                      <SelectItem key={`mobile-category-${category.id}`} value={category.id}>
+                                      <SelectItem
+                                        key={`mobile-category-${category.id}`}
+                                        value={category.id}
+                                      >
                                         {category.name}
                                       </SelectItem>
                                     ))}
@@ -1589,7 +1276,9 @@ const handleParseJD = async (text?: string) => {
                                 <Select
                                   onValueChange={field.onChange}
                                   value={field.value}
-                                  disabled={!form.watch("categoryId") || isLoading}
+                                  disabled={
+                                    !form.watch("categoryId") || isLoading
+                                  }
                                 >
                                   <FormControl>
                                     <SelectTrigger className="flex-1">
@@ -1609,12 +1298,19 @@ const handleParseJD = async (text?: string) => {
                                   <SelectContent>
                                     {subcategories.length > 0 ? (
                                       subcategories.map((subcategory) => (
-                                        <SelectItem key={`mobile-subcategory-${subcategory.id}`} value={subcategory.id}>
+                                        <SelectItem
+                                          key={`mobile-subcategory-${subcategory.id}`}
+                                          value={subcategory.id}
+                                        >
                                           {subcategory.name}
                                         </SelectItem>
                                       ))
                                     ) : (
-                                      <SelectItem key="mobile-none-subcategory" value="none" disabled>
+                                      <SelectItem
+                                        key="mobile-none-subcategory"
+                                        value="none"
+                                        disabled
+                                      >
                                         {form.watch("categoryId")
                                           ? "No subcategories available"
                                           : "Select a category first"}
@@ -1683,7 +1379,9 @@ const handleParseJD = async (text?: string) => {
                                   min="1"
                                   {...field}
                                   onChange={(e) =>
-                                    field.onChange(parseInt(e.target.value, 10) || 1)
+                                    field.onChange(
+                                      parseInt(e.target.value, 10) || 1
+                                    )
                                   }
                                 />
                               </FormControl>
@@ -1699,14 +1397,17 @@ const handleParseJD = async (text?: string) => {
                             <FormItem>
                               <FormLabel>Location</FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g. New York, Remote" {...field} />
+                                <Input
+                                  placeholder="e.g. New York, Remote"
+                                  {...field}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
 
-                        <SalaryInputFieldNew form={form} name="salary"/>
+                        <SalaryInputFieldNew form={form} name="salary" />
 
                         <FormField
                           control={form.control}
@@ -1715,7 +1416,10 @@ const handleParseJD = async (text?: string) => {
                             <FormItem>
                               <FormLabel>Start Date</FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g. Immediate, Feb 2025" {...field} />
+                                <Input
+                                  placeholder="e.g. Immediate, Feb 2025"
+                                  {...field}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1729,7 +1433,10 @@ const handleParseJD = async (text?: string) => {
                             <FormItem>
                               <FormLabel>Department</FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g. Engineering, Marketing" {...field} />
+                                <Input
+                                  placeholder="e.g. Engineering, Marketing"
+                                  {...field}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1743,7 +1450,10 @@ const handleParseJD = async (text?: string) => {
                             <FormItem>
                               <FormLabel>Education Requirements</FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g. Bachelor's in Computer Science" {...field} />
+                                <Input
+                                  placeholder="e.g. Bachelor's in Computer Science"
+                                  {...field}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1762,12 +1472,16 @@ const handleParseJD = async (text?: string) => {
                                   {...field}
                                   value={
                                     field.value
-                                      ? new Date(field.value).toISOString().slice(0, 16)
+                                      ? new Date(field.value)
+                                          .toISOString()
+                                          .slice(0, 16)
                                       : ""
                                   }
                                   onChange={(e) => {
                                     if (e.target.value) {
-                                      const localDate = new Date(e.target.value);
+                                      const localDate = new Date(
+                                        e.target.value
+                                      );
                                       const isoString = localDate.toISOString();
                                       field.onChange(isoString);
                                     } else {
@@ -1857,7 +1571,10 @@ const handleParseJD = async (text?: string) => {
                                 </FormDescription>
                               </div>
                               <FormControl>
-                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
                               </FormControl>
                             </FormItem>
                           )}
@@ -1875,7 +1592,10 @@ const handleParseJD = async (text?: string) => {
                                 </FormDescription>
                               </div>
                               <FormControl>
-                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
                               </FormControl>
                             </FormItem>
                           )}
@@ -1886,12 +1606,12 @@ const handleParseJD = async (text?: string) => {
                 </div>
 
                 {/* Submit Button */}
-               <div className="pt-6 flex justify-end">
-  <Button type="submit" className="min-w-[200px]">
-    <FileText className="h-4 w-4 mr-2" />
-    Create Job Listing
-  </Button>
-</div>
+                <div className="pt-6 flex justify-end">
+                  <Button type="submit" className="min-w-[200px]">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Create Job Listing
+                  </Button>
+                </div>
               </form>
             </Form>
           </CardContent>
@@ -1904,20 +1624,32 @@ const handleParseJD = async (text?: string) => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Job Listing Creation</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to create this job listing? Please review all the details before confirming.
+              Are you sure you want to create this job listing? Please review
+              all the details before confirming.
               <div className="mt-4 p-3 bg-slate-50 rounded text-sm">
-                <strong>Job Title:</strong> {pendingFormData?.title}<br/>
-                <strong>Company:</strong> {companies.find(c => c.id === pendingFormData?.companyId)?.name}<br/>
-                <strong>Location:</strong> {pendingFormData?.location || 'Not specified'}<br/>
-                <strong>Employment Type:</strong> {pendingFormData?.employmentType}
+                <strong>Job Title:</strong> {pendingFormData?.title}
+                <br />
+                <strong>Company:</strong>{" "}
+                {
+                  companies.find((c) => c.id === pendingFormData?.companyId)
+                    ?.name
+                }
+                <br />
+                <strong>Location:</strong>{" "}
+                {pendingFormData?.location || "Not specified"}
+                <br />
+                <strong>Employment Type:</strong>{" "}
+                {pendingFormData?.employmentType}
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setShowConfirmDialog(false);
-              setPendingFormData(null);
-            }}>
+            <AlertDialogCancel
+              onClick={() => {
+                setShowConfirmDialog(false);
+                setPendingFormData(null);
+              }}
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction onClick={onConfirmedSubmit}>
@@ -1928,12 +1660,16 @@ const handleParseJD = async (text?: string) => {
       </AlertDialog>
 
       {/* Category Dialog */}
-      <AlertDialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}>
+      <AlertDialog
+        open={showCategoryDialog}
+        onOpenChange={setShowCategoryDialog}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Add New Category</AlertDialogTitle>
             <AlertDialogDescription>
-              Create a new job category that will be available for all job listings.
+              Create a new job category that will be available for all job
+              listings.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">
@@ -1942,7 +1678,7 @@ const handleParseJD = async (text?: string) => {
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
               onKeyPress={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === "Enter") {
                   e.preventDefault();
                   handleCreateCategory();
                 }
@@ -1950,7 +1686,7 @@ const handleParseJD = async (text?: string) => {
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={() => {
                 setShowCategoryDialog(false);
                 setNewCategoryName("");
@@ -1959,7 +1695,7 @@ const handleParseJD = async (text?: string) => {
             >
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleCreateCategory}
               disabled={!newCategoryName.trim() || isSubmitting}
             >
@@ -1970,12 +1706,18 @@ const handleParseJD = async (text?: string) => {
       </AlertDialog>
 
       {/* Subcategory Dialog */}
-      <AlertDialog open={showSubcategoryDialog} onOpenChange={setShowSubcategoryDialog}>
+      <AlertDialog
+        open={showSubcategoryDialog}
+        onOpenChange={setShowSubcategoryDialog}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Add New Subcategory</AlertDialogTitle>
             <AlertDialogDescription>
-              Create a new subcategory for &quot;{categories.find(c => c.id === form.watch("categoryId"))?.name || 'selected category'}&quot;.
+              Create a new subcategory for &quot;
+              {categories.find((c) => c.id === form.watch("categoryId"))
+                ?.name || "selected category"}
+              &quot;.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">
@@ -1984,7 +1726,7 @@ const handleParseJD = async (text?: string) => {
               value={newSubcategoryName}
               onChange={(e) => setNewSubcategoryName(e.target.value)}
               onKeyPress={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === "Enter") {
                   e.preventDefault();
                   handleCreateSubcategory();
                 }
@@ -1992,7 +1734,7 @@ const handleParseJD = async (text?: string) => {
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={() => {
                 setShowSubcategoryDialog(false);
                 setNewSubcategoryName("");
@@ -2001,7 +1743,7 @@ const handleParseJD = async (text?: string) => {
             >
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleCreateSubcategory}
               disabled={!newSubcategoryName.trim() || isSubmitting}
             >
