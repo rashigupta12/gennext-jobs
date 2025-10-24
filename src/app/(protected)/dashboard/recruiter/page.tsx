@@ -202,7 +202,7 @@ export default function Recruiter() {
         )}
 
         {/* Main Content */}
-        <main className=" flex-1 p-4">{renderContent()}</main>
+        <main className=" flex-1 p-2">{renderContent()}</main>
       </div>
     </div>
   );
