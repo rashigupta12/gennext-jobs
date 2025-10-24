@@ -10,7 +10,6 @@ import {
   MoreHorizontal,
   Star,
   Trash2,
-  X,
   ChevronLeft,
   ChevronRight,
   Search,
@@ -28,8 +27,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   CardFooter,
 } from "@/components/ui/card";
 import {
@@ -61,6 +58,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+import JobListDetails from "./JobListDetails"; // Import the new component
 
 // Job listing type definition
 interface JobListing {
@@ -144,9 +143,6 @@ const JobListingDashboard: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  // Mobile sidebar state
-  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
-
   // Fetch job listings
   const fetchJobListings = async () => {
     if (!userId) return;
@@ -190,19 +186,9 @@ const JobListingDashboard: React.FC = () => {
     }
   }, [userId]);
 
-  // Handle job selection (with mobile responsiveness)
+  // Handle job selection
   const handleJobSelection = (job: JobListing) => {
     setSelectedJob(job);
-    // On mobile, show the sidebar when a job is selected
-    if (window.innerWidth < 1024) {
-      setShowMobileSidebar(true);
-    }
-  };
-
-  // Close mobile sidebar
-  const closeMobileSidebar = () => {
-    setShowMobileSidebar(false);
-    setSelectedJob(null);
   };
 
   // Handle job deletion
@@ -224,7 +210,6 @@ const JobListingDashboard: React.FC = () => {
       // If the deleted job was selected, clear selection
       if (selectedJob?.id === jobToDelete) {
         setSelectedJob(null);
-        setShowMobileSidebar(false);
       }
 
       // Close dialog
@@ -335,15 +320,9 @@ const JobListingDashboard: React.FC = () => {
           <p className="mt-2">Loading job listings...</p>
         </div>
       ) : (
-        <div className="flex flex-col lg:flex-row gap-4 md:gap-6 relative">
+        <div className="relative">
           {/* Job listings table */}
-          <div
-            className={`w-full ${
-              selectedJob && window.innerWidth >= 1024 ? "lg:w-7/12" : "lg:w-full"
-            } overflow-auto transition-all duration-300 ${
-              showMobileSidebar ? "hidden lg:block" : "block"
-            }`}
-          >
+          <div className="w-full overflow-auto">
             {jobListings.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
@@ -352,7 +331,7 @@ const JobListingDashboard: React.FC = () => {
                   </p>
                   <Button
                     onClick={() =>
-                      (window.location.href = "/job-listings/create")
+                      (window.location.href = "/dashboard/recruiter?tab=jobListing")
                     }
                   >
                     Create Your First Job Listing
@@ -551,257 +530,20 @@ const JobListingDashboard: React.FC = () => {
               </>
             )}
           </div>
-
-          {/* Job details sidebar */}
-          {selectedJob && (
-            <div className={`w-full lg:w-5/12 xl:w-4/12 flex-shrink-0 ${showMobileSidebar ? 'block fixed inset-0 z-50 bg-background p-4 overflow-auto lg:static lg:bg-transparent' : 'hidden lg:block'}`}>
-              <Card className="h-full lg:sticky lg:top-4">
-                <CardHeader className="flex flex-row items-start justify-between pb-2 space-y-0">
-                  <div className="pr-4">
-                    <CardTitle className="text-lg">{selectedJob.title}</CardTitle>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 flex-shrink-0 lg:hidden"
-                    onClick={closeMobileSidebar}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </CardHeader>
-
-                <CardContent className="space-y-4 py-2">
-                  {/* Status badges in one row */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge
-                      variant={selectedJob.isActive ? "default" : "secondary"}
-                    >
-                      {selectedJob.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                    {selectedJob.isFeatured && (
-                      <Badge
-                        variant="outline"
-                        className="border-yellow-300 text-yellow-700"
-                      >
-                        <Star className="h-3 w-3 mr-1" /> Featured
-                      </Badge>
-                    )}
-                    {selectedJob.category && (
-                      <Badge variant="outline" className="hidden sm:flex">
-                        <Globe className="h-3 w-3 mr-1" />
-                        {selectedJob.category.name}
-                        {selectedJob.subcategory &&
-                          ` • ${selectedJob.subcategory.name}`}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Job metadata in grid layout */}
-                  <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 text-sm">
-                    {selectedJob.location && (
-                      <div className="flex items-center">
-                        <MapPin className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
-                        <span className="truncate">{selectedJob.location}</span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center">
-                      <Calendar className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
-                      <span className="truncate">
-                        Created: {formatDate(selectedJob.createdAt)}
-                      </span>
-                    </div>
-
-                    {selectedJob.expiresAt && (
-                      <div className="flex items-center">
-                        <Calendar className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
-                        <span className="truncate">
-                          Expires: {formatDate(selectedJob.expiresAt)}
-                        </span>
-                      </div>
-                    )}
-
-                    {selectedJob.employmentType && (
-                      <div className="flex items-center">
-                        <Briefcase className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
-                        <span>{employmentTypeLabels[selectedJob.employmentType]}</span>
-                      </div>
-                    )}
-
-                    {selectedJob.openings > 0 && (
-                      <div className="flex items-center">
-                        <span className="font-medium mr-1">Openings:</span>
-                        <span>{selectedJob.openings}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <Separator className="my-2" />
-
-                  {/* Job details in grid layout */}
-                  <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 text-sm">
-                    {selectedJob.department && (
-                      <div>
-                        <span className="font-medium">Department:</span>{" "}
-                        <span className="truncate">{selectedJob.department}</span>
-                      </div>
-                    )}
-
-                    {selectedJob.role && (
-                      <div>
-                        <span className="font-medium">Role:</span>{" "}
-                        <span className="truncate">{selectedJob.role}</span>
-                      </div>
-                    )}
-
-                    {selectedJob.salary && (
-                      <div>
-                        <span className="font-medium">Salary:</span>{" "}
-                        <span className="truncate">{selectedJob.salary}</span>
-                      </div>
-                    )}
-
-                    {selectedJob.duration && (
-                      <div>
-                        <span className="font-medium">Duration:</span>{" "}
-                        <span className="truncate">{selectedJob.duration}</span>
-                      </div>
-                    )}
-
-                    {selectedJob.startDate && (
-                      <div>
-                        <span className="font-medium">Start:</span>{" "}
-                        <span className="truncate">{selectedJob.startDate}</span>
-                      </div>
-                    )}
-
-                    {selectedJob.education && (
-                      <div className="xs:col-span-2 flex items-start">
-                        <GraduationCap className="h-3.5 w-3.5 mr-1.5 text-gray-500 mt-0.5 flex-shrink-0" />
-                        <span>
-                          <span className="font-medium">Education: </span>
-                          {selectedJob.education}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Description with controlled height */}
-                  {selectedJob.description && (
-                    <>
-                      <Separator className="my-2" />
-                      <div>
-                        <h4 className="text-sm font-medium mb-1">
-                          Description
-                        </h4>
-                        <p className="text-sm whitespace-pre-line max-h-32 overflow-y-auto pr-1">
-                          {selectedJob.description}
-                        </p>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Highlights, Qualifications and Skills */}
-                  {((selectedJob.highlights?.length ?? 0) > 0 ||
-                    (selectedJob.qualifications?.length ?? 0) > 0 ||
-                    (selectedJob.skills?.length ?? 0) > 0) && (
-                    <>
-                      <Separator className="my-2" />
-                      <div className="space-y-4">
-                        {/* Highlights */}
-                        {(selectedJob.highlights ?? []).length > 0 && (
-                          <div>
-                            <h4 className="text-sm font-medium mb-1 flex items-center">
-                              <Award className="h-4 w-4 mr-1.5 text-blue-500" />
-                              Job Highlights
-                            </h4>
-                            <ul className="text-xs list-disc pl-5 space-y-1 max-h-24 overflow-y-auto">
-                              {(selectedJob.highlights ?? []).map(
-                                (highlight, index) => (
-                                  <li key={index} className="leading-relaxed">{highlight}</li>
-                                )
-                              )}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Qualifications */}
-                        {(selectedJob.qualifications ?? []).length > 0 && (
-                          <div>
-                            <h4 className="text-sm font-medium mb-1 flex items-center">
-                              <GraduationCap className="h-4 w-4 mr-1.5 text-green-500" />
-                              Qualifications
-                            </h4>
-                            <ul className="text-xs list-disc pl-5 space-y-1 max-h-24 overflow-y-auto">
-                              {(selectedJob.qualifications ?? []).map((qual, index) => (
-                                <li key={index} className="leading-relaxed">{qual}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Skills */}
-                        {(selectedJob.skills ?? []).length > 0 && (
-                          <div>
-                            <h4 className="text-sm font-medium mb-1 flex items-center">
-                              <Award className="h-4 w-4 mr-1.5 text-purple-500" />
-                              Required Skills
-                            </h4>
-                            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-                              {(selectedJob.skills ?? []).map((skill, index) => (
-                                <Badge
-                                  key={index}
-                                  variant="outline"
-                                  className="text-xs py-1 px-2"
-                                >
-                                  {skill}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-
-                <CardFooter className="pt-0 flex flex-col xs:flex-row justify-between gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      window.open(`/jobs/${selectedJob.slug}`, "_blank")
-                    }
-                    className="text-xs w-full xs:w-auto"
-                  >
-                    <Eye className="mr-1 h-3.5 w-3.5" />
-                    View Public Page
-                  </Button>
-                  <div className="flex gap-2 w-full xs:w-auto">
-                    {/* <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => navigateToEdit(selectedJob.id)}
-                      className="text-xs flex-1"
-                    >
-                      <Edit className="mr-1 h-3.5 w-3.5" />
-                      Edit
-                    </Button> */}
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => confirmDelete(selectedJob.id)}
-                      className="text-xs flex-1"
-                    >
-                      <Trash2 className="mr-1 h-3.5 w-3.5" />
-                      Delete
-                    </Button>
-                  </div>
-                </CardFooter>
-              </Card>
-            </div>
-          )}
         </div>
+      )}
+
+      {/* Job details sheet */}
+      {selectedJob && (
+        <JobListDetails
+          job={selectedJob}
+          open={!!selectedJob}
+          onOpenChange={(open) => {
+            if (!open) setSelectedJob(null);
+          }}
+          onViewPublic={(slug) => window.open(`/jobs/${slug}`, "_blank")}
+          onDelete={confirmDelete}
+        />
       )}
 
       {/* Delete confirmation dialog */}

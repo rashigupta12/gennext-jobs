@@ -84,6 +84,8 @@ export async function GET(request: Request) {
       conditions.push(inArray(JobListingsTable.id, jobIds));
     }
 
+
+    
     // Fetch job listings with conditions
     const jobListings = await db
       .select()

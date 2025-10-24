@@ -300,13 +300,70 @@ const JobListingForm: React.FC = () => {
   };
 
   // Generate slug from title
-  const generateSlug = () => {
-    const title = form.getValues("title");
-    if (title) {
-      const slug = title.toLowerCase().replace(/\s+/g, "-");
-      form.setValue("slug", slug);
+ // In your JobListingForm component, replace the generateSlug function:
+
+// Remove the old generateSlug function and replace it with:
+const generateSlug = async () => {
+  const title = form.getValues("title");
+  const companyId = form.getValues("companyId");
+  
+  if (!title || !companyId) {
+    toast({
+      title: "Error",
+      description: "Please enter a job title and select a company first",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  try {
+    // Get company name
+    const company = companies.find(c => c.id === companyId);
+    if (!company) {
+      toast({
+        title: "Error",
+        description: "Company not found",
+        variant: "destructive",
+      });
+      return;
     }
-  };
+
+    // Call API to generate unique slug
+    const response = await fetch("/api/generate-slug", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title,
+        companyName: company.name,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to generate slug");
+    }
+
+    const { slug } = await response.json();
+    form.setValue("slug", slug);
+    
+    toast({
+      title: "Success",
+      description: "Unique slug generated with company name!",
+    });
+  } catch (error) {
+    console.error("Error generating slug:", error);
+    // Fallback to basic slug generation
+    const basicSlug = `${title.toLowerCase().replace(/\s+/g, "-")}-${companies.find(c => c.id === companyId)?.name.toLowerCase().replace(/\s+/g, "-")}`;
+    form.setValue("slug", basicSlug);
+    
+    toast({
+      title: "Note",
+      description: "Used basic slug generation. May not be unique.",
+      variant: "default",
+    });
+  }
+};
 
   // Handle Enter key press to prevent form submission
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -412,7 +469,7 @@ const JobListingForm: React.FC = () => {
   };
 
   // Replace the handleParseJD function with this new version
-  const handleParseJD = async (text?: string) => {
+ const handleParseJD = async (text?: string) => {
   const jdTextToParse = text;
 
   if (!jdTextToParse?.trim()) {
@@ -455,12 +512,31 @@ const JobListingForm: React.FC = () => {
     if (parsedData.highlights?.length > 0) form.setValue("highlights", parsedData.highlights);
     if (parsedData.qualifications?.length > 0) form.setValue("qualifications", parsedData.qualifications);
     if (parsedData.skills?.length > 0) form.setValue("skills", parsedData.skills);
-
-    // Generate slug
-    if (parsedData.title) {
-      const slug = parsedData.title.toLowerCase().replace(/\s+/g, "-");
-      form.setValue("slug", slug);
-    }
+if (parsedData.title) {
+  const companyId = form.getValues("companyId");
+  const company = companies.find(c => c.id === companyId);
+  
+  if (company) {
+    const baseSlug = `${parsedData.title.toLowerCase().replace(/\s+/g, "-")}-${company.name.toLowerCase().replace(/\s+/g, "-")}`;
+    const cleanSlug = baseSlug
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    
+    // NO TIMESTAMP - just use the clean slug
+    form.setValue("slug", cleanSlug);
+  } else {
+    // Fallback if no company selected
+    const slug = parsedData.title.toLowerCase().replace(/\s+/g, "-");
+    form.setValue("slug", slug);
+    
+    toast({
+      title: "Note",
+      description: "Slug generated without company name. You can regenerate it after selecting a company.",
+      variant: "default",
+    });
+  }
+}
 
     toast({
       title: "Success",
@@ -1623,25 +1699,27 @@ const JobListingForm: React.FC = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Job Listing Creation</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to create this job listing? Please review
-              all the details before confirming.
-              <div className="mt-4 p-3 bg-slate-50 rounded text-sm">
-                <strong>Job Title:</strong> {pendingFormData?.title}
-                <br />
-                <strong>Company:</strong>{" "}
-                {
-                  companies.find((c) => c.id === pendingFormData?.companyId)
-                    ?.name
-                }
-                <br />
-                <strong>Location:</strong>{" "}
-                {pendingFormData?.location || "Not specified"}
-                <br />
-                <strong>Employment Type:</strong>{" "}
-                {pendingFormData?.employmentType}
-              </div>
-            </AlertDialogDescription>
+           <>
+  <AlertDialogDescription>
+    Are you sure you want to create this job listing? Please review
+    all the details before confirming.
+  </AlertDialogDescription>
+  <div className="mt-4 p-3 bg-slate-50 rounded text-sm">
+    <strong>Job Title:</strong> {pendingFormData?.title}
+    <br />
+    <strong>Company:</strong>{" "}
+    {
+      companies.find((c) => c.id === pendingFormData?.companyId)
+        ?.name
+    }
+    <br />
+    <strong>Location:</strong>{" "}
+    {pendingFormData?.location || "Not specified"}
+    <br />
+    <strong>Employment Type:</strong>{" "}
+    {pendingFormData?.employmentType}
+  </div>
+</>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
