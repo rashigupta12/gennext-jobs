@@ -2,10 +2,9 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import {
-  Calendar,
   // Edit,
   Eye,
-  Globe,
+ 
   MapPin,
   MoreHorizontal,
   Star,
@@ -14,15 +13,12 @@ import {
   ChevronRight,
   Search,
   RefreshCw,
-  Briefcase,
-  GraduationCap,
-  Award,
 } from "lucide-react";
 
 // Import UI components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
