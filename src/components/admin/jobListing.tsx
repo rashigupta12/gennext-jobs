@@ -4,6 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { Award, Briefcase, FileText, Plus, Settings, Trash2, Upload, Loader2 } from "lucide-react";
 import { z } from "zod";
 // Import UI components
 import {
@@ -47,7 +48,6 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
-import { Award, Briefcase, FileText, Plus, Settings, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useWatch } from "react-hook-form";
 import SalaryInputField from "../common/SalaryInputField";
@@ -147,6 +147,9 @@ const JobListingForm: React.FC = () => {
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [showSubcategoryDialog, setShowSubcategoryDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [jdText, setJdText] = useState("");
+const [isParsingJD, setIsParsingJD] = useState(false);
+const [showJDUpload, setShowJDUpload] = useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {toast} = useToast();
@@ -306,6 +309,200 @@ const JobListingForm: React.FC = () => {
       e.preventDefault();
     }
   };
+const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  // Check file type
+  const fileExtension = file.name.split('.').pop()?.toLowerCase();
+  const validExtensions = ['txt', 'doc', 'docx', 'pdf'];
+  
+  if (!fileExtension || !validExtensions.includes(fileExtension)) {
+    toast({
+      title: "Error",
+      description: "Please upload a .txt, .doc, .docx, or .pdf file",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  // Check file size (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    toast({
+      title: "Error",
+      description: "File size must be less than 5MB",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  try {
+    let text = '';
+
+    if (fileExtension === 'txt') {
+      // Handle .txt files
+      text = await file.text();
+    } else if (fileExtension === 'docx' || fileExtension === 'doc') {
+      // Handle Word files using mammoth
+      const mammoth = await import('mammoth');
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      text = result.value;
+    } else if (fileExtension === 'pdf') {
+      // Handle PDF files using pdf.js
+      const pdfjsLib = await import('pdfjs-dist');
+      
+      // Set worker path
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+      
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      // Extract text from all pages
+      const textPromises = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        textPromises.push(
+          pdf.getPage(i).then(page => 
+            page.getTextContent().then(content => 
+              content.items.map((item: any) => item.str).join(' ')
+            )
+          )
+        );
+      }
+      
+      const pages = await Promise.all(textPromises);
+      text = pages.join('\n\n');
+    }
+
+    console.log('File loaded, length:', text.length);
+    console.log('First 200 chars:', text.substring(0, 200));
+    
+    if (!text.trim()) {
+      toast({
+        title: "Error",
+        description: "The file appears to be empty or couldn't be read",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setJdText(text);
+    toast({
+      title: "Success",
+      description: `File uploaded successfully (${text.length} characters)`,
+    });
+  } catch (error) {
+    console.error('Error reading file:', error);
+    toast({
+      title: "Error",
+      description: "Failed to read file. Please try a different format.",
+      variant: "destructive",
+    });
+  }
+};
+
+
+ const handleParseJD = async () => {
+  if (!jdText.trim()) {
+    toast({
+      title: "Error",
+      description: "Please enter or upload a job description",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  console.log("Starting to parse JD..."); // DEBUG
+  console.log("JD Text length:", jdText.length); // DEBUG
+  
+  setIsParsingJD(true);
+  try {
+    const response = await fetch("/api/parse-jd", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ jdText }),
+    });
+
+    console.log("Response status:", response.status); // DEBUG
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("API Error:", errorData); // DEBUG
+      throw new Error(errorData.error || "Failed to parse job description");
+    }
+
+    const result = await response.json();
+    console.log("Full API result:", result); // DEBUG
+    console.log("Parsed data:", result.data); // DEBUG
+    
+    const parsedData = result.data;
+
+    // Populate form fields with detailed logging
+    if (parsedData.title) {
+      console.log("Setting title:", parsedData.title); // DEBUG
+      form.setValue("title", parsedData.title);
+    }
+    if (parsedData.location) {
+      console.log("Setting location:", parsedData.location); // DEBUG
+      form.setValue("location", parsedData.location);
+    }
+    if (parsedData.salary) {
+      console.log("Setting salary:", parsedData.salary); // DEBUG
+      form.setValue("salary", parsedData.salary);
+    }
+    if (parsedData.employmentType) {
+      console.log("Setting employmentType:", parsedData.employmentType); // DEBUG
+      form.setValue("employmentType", parsedData.employmentType);
+    }
+    if (parsedData.department) form.setValue("department", parsedData.department);
+    if (parsedData.description) form.setValue("description", parsedData.description);
+    if (parsedData.education) form.setValue("education", parsedData.education);
+    if (parsedData.startDate) form.setValue("startDate", parsedData.startDate);
+    if (parsedData.openings) form.setValue("openings", parsedData.openings);
+    
+    // Handle array fields
+    if (parsedData.highlights?.length > 0) {
+      console.log("Setting highlights:", parsedData.highlights); // DEBUG
+      form.setValue("highlights", parsedData.highlights);
+    }
+    if (parsedData.qualifications?.length > 0) {
+      console.log("Setting qualifications:", parsedData.qualifications); // DEBUG
+      form.setValue("qualifications", parsedData.qualifications);
+    }
+    if (parsedData.skills?.length > 0) {
+      console.log("Setting skills:", parsedData.skills); // DEBUG
+      form.setValue("skills", parsedData.skills);
+    }
+
+    // Generate slug
+    if (parsedData.title) {
+      const slug = parsedData.title.toLowerCase().replace(/\s+/g, "-");
+      form.setValue("slug", slug);
+    }
+
+    console.log("All values set successfully!"); // DEBUG
+
+    setShowJDUpload(false);
+    setJdText("");
+    
+    toast({
+      title: "Success",
+      description: "Job description parsed successfully!",
+    });
+  } catch (error) {
+    console.error("Error parsing JD:", error); // DEBUG
+    toast({
+      title: "Error",
+      description: error instanceof Error ? error.message : "Failed to parse job description. Please try again.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsParsingJD(false);
+  }
+};
+
 
   // Handle form submission with confirmation
   const handleSubmit = (data: z.infer<typeof jobListingSchema>) => {
@@ -380,7 +577,8 @@ const JobListingForm: React.FC = () => {
         throw new Error('Failed to create category');
       }
 
-      const newCategory = await response.json();
+      const newCategoryResponse = await response.json();
+        const newCategory = newCategoryResponse.category; 
       setCategories(prev => [...prev, newCategory]);
       
       // Set the newly created category as selected
@@ -511,9 +709,88 @@ const JobListingForm: React.FC = () => {
     <>
       <div className="w-full max-w-full mx-auto ">
         <Card className="w-full">
-          <CardHeader className="pb-2">
-            
-          </CardHeader>
+<CardHeader className="pb-2">
+  <div className="flex justify-between items-center">
+    <h2 className="text-2xl font-bold">Create Job Listing</h2>
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={() => setShowJDUpload(!showJDUpload)}
+    >
+      <Upload className="h-4 w-4 mr-2" />
+      Upload JD
+    </Button>
+  </div>
+  
+  {showJDUpload && (
+    <div className="mt-4 p-4 border rounded-lg bg-slate-50 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 flex-1">
+          <label 
+            htmlFor="jd-file-upload" 
+            className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Choose File
+          </label>
+          <input
+            id="jd-file-upload"
+            type="file"
+            accept=".txt,.doc,.docx,.pdf"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <span className="text-xs text-slate-500 truncate">
+            .txt, .doc, .docx, .pdf (max 5MB)
+          </span>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleParseJD}
+            disabled={isParsingJD || !jdText.trim()}
+          >
+            {isParsingJD ? (
+              <>
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                Parsing...
+              </>
+            ) : (
+              <>
+                <FileText className="h-3 w-3 mr-1" />
+                Parse
+              </>
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setShowJDUpload(false);
+              setJdText("");
+            }}
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-700">Or Paste Job Description</label>
+        <Textarea
+          placeholder="Paste the complete job description here..."
+          value={jdText}
+          onChange={(e) => setJdText(e.target.value)}
+          className="min-h-[150px] text-sm"
+        />
+      </div>
+    </div>
+  )}
+</CardHeader>
           <CardContent>
             <Form {...form}>
               <form 
@@ -1312,11 +1589,12 @@ const JobListingForm: React.FC = () => {
                 </div>
 
                 {/* Submit Button */}
-                <div className="pt-6">
-                  <Button type="submit" className="w-full">
-                    Create Job Listing
-                  </Button>
-                </div>
+               <div className="pt-6 flex justify-end">
+  <Button type="submit" className="min-w-[200px]">
+    <FileText className="h-4 w-4 mr-2" />
+    Create Job Listing
+  </Button>
+</div>
               </form>
             </Form>
           </CardContent>
