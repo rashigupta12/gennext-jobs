@@ -151,6 +151,8 @@ const JobListingForm: React.FC = () => {
 const [isParsingJD, setIsParsingJD] = useState(false);
 const [showJDUpload, setShowJDUpload] = useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
+  const [showConfirmParsingDialog, setShowConfirmParsingDialog] = useState(false);
+  const [parsedData, setParsedData] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {toast} = useToast();
   
@@ -337,6 +339,7 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
   }
 
   try {
+    setIsParsingJD(true);
     let text = '';
 
     if (fileExtension === 'txt') {
@@ -375,7 +378,6 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     }
 
     console.log('File loaded, length:', text.length);
-    console.log('First 200 chars:', text.substring(0, 200));
     
     if (!text.trim()) {
       toast({
@@ -383,14 +385,13 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         description: "The file appears to be empty or couldn't be read",
         variant: "destructive",
       });
+      setIsParsingJD(false);
       return;
     }
 
-    setJdText(text);
-    toast({
-      title: "Success",
-      description: `File uploaded successfully (${text.length} characters)`,
-    });
+    // Auto-parse the JD after file upload
+    await handleParseJD(text);
+    
   } catch (error) {
     console.error('Error reading file:', error);
     toast({
@@ -398,12 +399,15 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
       description: "Failed to read file. Please try a different format.",
       variant: "destructive",
     });
+    setIsParsingJD(false);
   }
 };
 
-
- const handleParseJD = async () => {
-  if (!jdText.trim()) {
+// Replace the handleParseJD function with this new version
+const handleParseJD = async (text?: string) => {
+  const jdTextToParse = text || jdText;
+  
+  if (!jdTextToParse.trim()) {
     toast({
       title: "Error",
       description: "Please enter or upload a job description",
@@ -412,8 +416,8 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     return;
   }
 
-  console.log("Starting to parse JD..."); // DEBUG
-  console.log("JD Text length:", jdText.length); // DEBUG
+  console.log("Starting to parse JD...");
+  console.log("JD Text length:", jdTextToParse.length);
   
   setIsParsingJD(true);
   try {
@@ -422,77 +426,28 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ jdText }),
+      body: JSON.stringify({ jdText: jdTextToParse }),
     });
 
-    console.log("Response status:", response.status); // DEBUG
+    console.log("Response status:", response.status);
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("API Error:", errorData); // DEBUG
+      console.error("API Error:", errorData);
       throw new Error(errorData.error || "Failed to parse job description");
     }
 
     const result = await response.json();
-    console.log("Full API result:", result); // DEBUG
-    console.log("Parsed data:", result.data); // DEBUG
+    console.log("Full API result:", result);
+    console.log("Parsed data:", result.data);
     
     const parsedData = result.data;
 
-    // Populate form fields with detailed logging
-    if (parsedData.title) {
-      console.log("Setting title:", parsedData.title); // DEBUG
-      form.setValue("title", parsedData.title);
-    }
-    if (parsedData.location) {
-      console.log("Setting location:", parsedData.location); // DEBUG
-      form.setValue("location", parsedData.location);
-    }
-    if (parsedData.salary) {
-      console.log("Setting salary:", parsedData.salary); // DEBUG
-      form.setValue("salary", parsedData.salary);
-    }
-    if (parsedData.employmentType) {
-      console.log("Setting employmentType:", parsedData.employmentType); // DEBUG
-      form.setValue("employmentType", parsedData.employmentType);
-    }
-    if (parsedData.department) form.setValue("department", parsedData.department);
-    if (parsedData.description) form.setValue("description", parsedData.description);
-    if (parsedData.education) form.setValue("education", parsedData.education);
-    if (parsedData.startDate) form.setValue("startDate", parsedData.startDate);
-    if (parsedData.openings) form.setValue("openings", parsedData.openings);
+    // Store parsed data and show confirmation dialog
+    setParsedData(parsedData);
     
-    // Handle array fields
-    if (parsedData.highlights?.length > 0) {
-      console.log("Setting highlights:", parsedData.highlights); // DEBUG
-      form.setValue("highlights", parsedData.highlights);
-    }
-    if (parsedData.qualifications?.length > 0) {
-      console.log("Setting qualifications:", parsedData.qualifications); // DEBUG
-      form.setValue("qualifications", parsedData.qualifications);
-    }
-    if (parsedData.skills?.length > 0) {
-      console.log("Setting skills:", parsedData.skills); // DEBUG
-      form.setValue("skills", parsedData.skills);
-    }
-
-    // Generate slug
-    if (parsedData.title) {
-      const slug = parsedData.title.toLowerCase().replace(/\s+/g, "-");
-      form.setValue("slug", slug);
-    }
-
-    console.log("All values set successfully!"); // DEBUG
-
-    setShowJDUpload(false);
-    setJdText("");
-    
-    toast({
-      title: "Success",
-      description: "Job description parsed successfully!",
-    });
   } catch (error) {
-    console.error("Error parsing JD:", error); // DEBUG
+    console.error("Error parsing JD:", error);
     toast({
       title: "Error",
       description: error instanceof Error ? error.message : "Failed to parse job description. Please try again.",
@@ -502,6 +457,110 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsParsingJD(false);
   }
 };
+
+
+
+
+//  const handleParseJD = async () => {
+//   if (!jdText.trim()) {
+//     toast({
+//       title: "Error",
+//       description: "Please enter or upload a job description",
+//       variant: "destructive",
+//     });
+//     return;
+//   }
+
+//   console.log("Starting to parse JD..."); // DEBUG
+//   console.log("JD Text length:", jdText.length); // DEBUG
+  
+//   setIsParsingJD(true);
+//   try {
+//     const response = await fetch("/api/parse-jd", {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//       },
+//       body: JSON.stringify({ jdText }),
+//     });
+
+//     console.log("Response status:", response.status); // DEBUG
+
+//     if (!response.ok) {
+//       const errorData = await response.json();
+//       console.error("API Error:", errorData); // DEBUG
+//       throw new Error(errorData.error || "Failed to parse job description");
+//     }
+
+//     const result = await response.json();
+//     console.log("Full API result:", result); // DEBUG
+//     console.log("Parsed data:", result.data); // DEBUG
+    
+//     const parsedData = result.data;
+
+//     // Populate form fields with detailed logging
+//     if (parsedData.title) {
+//       console.log("Setting title:", parsedData.title); // DEBUG
+//       form.setValue("title", parsedData.title);
+//     }
+//     if (parsedData.location) {
+//       console.log("Setting location:", parsedData.location); // DEBUG
+//       form.setValue("location", parsedData.location);
+//     }
+//     if (parsedData.salary) {
+//       console.log("Setting salary:", parsedData.salary); // DEBUG
+//       form.setValue("salary", parsedData.salary);
+//     }
+//     if (parsedData.employmentType) {
+//       console.log("Setting employmentType:", parsedData.employmentType); // DEBUG
+//       form.setValue("employmentType", parsedData.employmentType);
+//     }
+//     if (parsedData.department) form.setValue("department", parsedData.department);
+//     if (parsedData.description) form.setValue("description", parsedData.description);
+//     if (parsedData.education) form.setValue("education", parsedData.education);
+//     if (parsedData.startDate) form.setValue("startDate", parsedData.startDate);
+//     if (parsedData.openings) form.setValue("openings", parsedData.openings);
+    
+//     // Handle array fields
+//     if (parsedData.highlights?.length > 0) {
+//       console.log("Setting highlights:", parsedData.highlights); // DEBUG
+//       form.setValue("highlights", parsedData.highlights);
+//     }
+//     if (parsedData.qualifications?.length > 0) {
+//       console.log("Setting qualifications:", parsedData.qualifications); // DEBUG
+//       form.setValue("qualifications", parsedData.qualifications);
+//     }
+//     if (parsedData.skills?.length > 0) {
+//       console.log("Setting skills:", parsedData.skills); // DEBUG
+//       form.setValue("skills", parsedData.skills);
+//     }
+
+//     // Generate slug
+//     if (parsedData.title) {
+//       const slug = parsedData.title.toLowerCase().replace(/\s+/g, "-");
+//       form.setValue("slug", slug);
+//     }
+
+//     console.log("All values set successfully!"); // DEBUG
+
+//     setShowJDUpload(false);
+//     setJdText("");
+    
+//     toast({
+//       title: "Success",
+//       description: "Job description parsed successfully!",
+//     });
+//   } catch (error) {
+//     console.error("Error parsing JD:", error); // DEBUG
+//     toast({
+//       title: "Error",
+//       description: error instanceof Error ? error.message : "Failed to parse job description. Please try again.",
+//       variant: "destructive",
+//     });
+//   } finally {
+//     setIsParsingJD(false);
+//   }
+// };
 
 
   // Handle form submission with confirmation
@@ -602,6 +661,66 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
       setIsSubmitting(false);
     }
   };
+
+  const handleConfirmParsedData = () => {
+  if (!parsedData) return;
+
+  console.log("Applying parsed data to form...");
+
+  // Populate form fields with parsed data
+  if (parsedData.title) {
+    console.log("Setting title:", parsedData.title);
+    form.setValue("title", parsedData.title);
+  }
+  if (parsedData.location) {
+    console.log("Setting location:", parsedData.location);
+    form.setValue("location", parsedData.location);
+  }
+  if (parsedData.salary) {
+    console.log("Setting salary:", parsedData.salary);
+    form.setValue("salary", parsedData.salary);
+  }
+  if (parsedData.employmentType) {
+    console.log("Setting employmentType:", parsedData.employmentType);
+    form.setValue("employmentType", parsedData.employmentType);
+  }
+  if (parsedData.department) form.setValue("department", parsedData.department);
+  if (parsedData.description) form.setValue("description", parsedData.description);
+  if (parsedData.education) form.setValue("education", parsedData.education);
+  if (parsedData.startDate) form.setValue("startDate", parsedData.startDate);
+  if (parsedData.openings) form.setValue("openings", parsedData.openings);
+  
+  // Handle array fields
+  if (parsedData.highlights?.length > 0) {
+    console.log("Setting highlights:", parsedData.highlights);
+    form.setValue("highlights", parsedData.highlights);
+  }
+  if (parsedData.qualifications?.length > 0) {
+    console.log("Setting qualifications:", parsedData.qualifications);
+    form.setValue("qualifications", parsedData.qualifications);
+  }
+  if (parsedData.skills?.length > 0) {
+    console.log("Setting skills:", parsedData.skills);
+    form.setValue("skills", parsedData.skills);
+  }
+
+  // Generate slug
+  if (parsedData.title) {
+    const slug = parsedData.title.toLowerCase().replace(/\s+/g, "-");
+    form.setValue("slug", slug);
+  }
+
+  console.log("All values set successfully!");
+
+  
+  setJdText("");
+  setParsedData(null);
+  
+  toast({
+    title: "Success",
+    description: "Job description parsed and fields auto-filled!",
+  });
+};
 
   const handleCreateSubcategory = async () => {
     if (!newSubcategoryName.trim() || !form.watch("categoryId")) return;
@@ -712,85 +831,263 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
 <CardHeader className="pb-2">
   <div className="flex justify-between items-center">
     <h2 className="text-2xl font-bold">Create Job Listing</h2>
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      onClick={() => setShowJDUpload(!showJDUpload)}
-    >
-      <Upload className="h-4 w-4 mr-2" />
-      Upload JD
-    </Button>
+    <div className="flex gap-2">
+      {/* Hidden file input that gets triggered by the button */}
+      <input
+        id="jd-file-upload"
+        type="file"
+        accept=".txt,.doc,.docx,.pdf"
+        onChange={handleFileUpload}
+        className="hidden"
+        disabled={isParsingJD}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => document.getElementById('jd-file-upload')?.click()}
+        disabled={isParsingJD}
+      >
+        {isParsingJD ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Upload className="h-4 w-4 mr-2" />
+        )}
+        {isParsingJD ? "Parsing..." : "Upload JD"}
+      </Button>
+      
+      {/* <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setShowJDUpload(!showJDUpload)}
+      >
+        <FileText className="h-4 w-4 mr-2" />
+        Paste Text
+      </Button> */}
+    </div>
   </div>
   
+  {/* Only show the textarea for manual pasting */}
   {showJDUpload && (
     <div className="mt-4 p-4 border rounded-lg bg-slate-50 space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 flex-1">
-          <label 
-            htmlFor="jd-file-upload" 
-            className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Choose File
-          </label>
-          <input
-            id="jd-file-upload"
-            type="file"
-            accept=".txt,.doc,.docx,.pdf"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-          <span className="text-xs text-slate-500 truncate">
-            .txt, .doc, .docx, .pdf (max 5MB)
-          </span>
-        </div>
-        
+      <div className="flex justify-between items-center">
+        <label className="text-sm font-medium text-slate-700">Paste Job Description</label>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setShowJDUpload(false);
+            setJdText("");
+          }}
+        >
+          Close
+        </Button>
+      </div>
+      
+      <Textarea
+        placeholder="Paste the complete job description here..."
+        value={jdText}
+        onChange={(e) => setJdText(e.target.value)}
+        className="min-h-[150px] text-sm"
+      />
+      <Button
+        type="button"
+        size="sm"
+        onClick={() => handleParseJD()}
+        disabled={isParsingJD || !jdText.trim()}
+        className="w-full"
+      >
+        {isParsingJD ? (
+          <>
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            Parsing...
+          </>
+        ) : (
+          <>
+            <FileText className="h-3 w-3 mr-1" />
+            Parse Pasted Text
+          </>
+        )}
+      </Button>
+    </div>
+  )}
+
+  {/* Show parsed data in editable form */}
+  {parsedData && (
+    <div className="mt-4 p-4 border rounded-lg bg-blue-50 max-h-96 overflow-y-auto">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-sm font-medium text-blue-800">Edit Parsed Job Details</h3>
         <div className="flex gap-2">
           <Button
             type="button"
             size="sm"
-            onClick={handleParseJD}
-            disabled={isParsingJD || !jdText.trim()}
+            onClick={handleConfirmParsedData}
+            className="bg-blue-600 hover:bg-blue-700 text-xs h-7"
           >
-            {isParsingJD ? (
-              <>
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                Parsing...
-              </>
-            ) : (
-              <>
-                <FileText className="h-3 w-3 mr-1" />
-                Parse
-              </>
-            )}
+            Confirm
           </Button>
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => {
-              setShowJDUpload(false);
+              setParsedData(null);
               setJdText("");
             }}
+            className="text-xs h-7"
           >
-            Cancel
+            Discard
           </Button>
         </div>
       </div>
       
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-slate-700">Or Paste Job Description</label>
-        <Textarea
-          placeholder="Paste the complete job description here..."
-          value={jdText}
-          onChange={(e) => setJdText(e.target.value)}
-          className="min-h-[150px] text-sm"
-        />
+      <div className="space-y-3 text-sm">
+        {/* Single line text fields */}
+        <div>
+          <label className="block text-xs font-medium text-blue-700 mb-1">Job Title</label>
+          <input
+            type="text"
+            value={parsedData.title || ''}
+            onChange={(e) => setParsedData({...parsedData, title: e.target.value})}
+            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
+            placeholder="Enter job title"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-blue-700 mb-1">Location</label>
+          <input
+            type="text"
+            value={parsedData.location || ''}
+            onChange={(e) => setParsedData({...parsedData, location: e.target.value})}
+            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
+            placeholder="Enter location"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-blue-700 mb-1">Salary</label>
+          <input
+            type="text"
+            value={parsedData.salary || ''}
+            onChange={(e) => setParsedData({...parsedData, salary: e.target.value})}
+            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
+            placeholder="Enter salary range"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-blue-700 mb-1">Employment Type</label>
+          <input
+            type="text"
+            value={parsedData.employmentType || ''}
+            onChange={(e) => setParsedData({...parsedData, employmentType: e.target.value})}
+            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
+            placeholder="e.g., Full-time, Part-time, Contract"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-blue-700 mb-1">Department</label>
+          <input
+            type="text"
+            value={parsedData.department || ''}
+            onChange={(e) => setParsedData({...parsedData, department: e.target.value})}
+            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
+            placeholder="Enter department"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-blue-700 mb-1">Number of Openings</label>
+          <input
+            type="number"
+            value={parsedData.openings || ''}
+            onChange={(e) => setParsedData({...parsedData, openings: e.target.value})}
+            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
+            placeholder="Enter number of openings"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-blue-700 mb-1">Education Requirements</label>
+          <input
+            type="text"
+            value={parsedData.education || ''}
+            onChange={(e) => setParsedData({...parsedData, education: e.target.value})}
+            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
+            placeholder="Enter education requirements"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-blue-700 mb-1">Start Date</label>
+          <input
+            type="text"
+            value={parsedData.startDate || ''}
+            onChange={(e) => setParsedData({...parsedData, startDate: e.target.value})}
+            className="w-full p-2 border border-blue-200 rounded text-sm bg-white"
+            placeholder="Enter start date"
+          />
+        </div>
+
+        {/* Array fields - editable textareas with comma separation */}
+        <div>
+          <label className="block text-xs font-medium text-blue-700 mb-1">Highlights (comma separated)</label>
+          <textarea
+            value={parsedData.highlights?.join(', ') || ''}
+            onChange={(e) => setParsedData({
+              ...parsedData, 
+              highlights: e.target.value.split(',').map(item => item.trim()).filter(item => item)
+            })}
+            className="w-full p-2 border border-blue-200 rounded text-sm bg-white min-h-[60px]"
+            placeholder="Enter highlights separated by commas"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-blue-700 mb-1">Qualifications (comma separated)</label>
+          <textarea
+            value={parsedData.qualifications?.join(', ') || ''}
+            onChange={(e) => setParsedData({
+              ...parsedData, 
+              qualifications: e.target.value.split(',').map(item => item.trim()).filter(item => item)
+            })}
+            className="w-full p-2 border border-blue-200 rounded text-sm bg-white min-h-[60px]"
+            placeholder="Enter qualifications separated by commas"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-blue-700 mb-1">Skills (comma separated)</label>
+          <textarea
+            value={parsedData.skills?.join(', ') || ''}
+            onChange={(e) => setParsedData({
+              ...parsedData, 
+              skills: e.target.value.split(',').map(item => item.trim()).filter(item => item)
+            })}
+            className="w-full p-2 border border-blue-200 rounded text-sm bg-white min-h-[60px]"
+            placeholder="Enter skills separated by commas"
+          />
+        </div>
+
+        {/* Description field - full editable textarea */}
+        <div>
+          <label className="block text-xs font-medium text-blue-700 mb-1">Job Description</label>
+          <textarea
+            value={parsedData.description || ''}
+            onChange={(e) => setParsedData({...parsedData, description: e.target.value})}
+            className="w-full p-2 border border-blue-200 rounded text-sm bg-white min-h-[80px]"
+            placeholder="Enter job description"
+          />
+        </div>
       </div>
     </div>
   )}
 </CardHeader>
+
           <CardContent>
             <Form {...form}>
               <form 

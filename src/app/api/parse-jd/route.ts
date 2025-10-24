@@ -80,7 +80,7 @@ Return ONLY valid JSON with these exact fields.`;
     const parsedContent = data.choices[0]?.message?.content;
     console.log('Parsed content:', parsedContent);
 
-    let parsedData = JSON.parse(parsedContent);
+    const parsedData = JSON.parse(parsedContent);
     
     // Normalize
     const validEmploymentTypes = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'FREELANCE'];
