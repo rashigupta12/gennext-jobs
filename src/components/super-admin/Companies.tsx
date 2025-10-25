@@ -7,7 +7,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Search,
@@ -28,6 +27,8 @@ import { UploadButton } from "@/utils/uploadthing";
 import { useCurrentUser } from "@/hooks/auth";
 import Image from "next/image";
 import { toast } from "sonner";
+import Pagination from "./pagination";
+import CompanyFilter from "./filter";
 
 interface Company {
   id: string;
@@ -79,6 +80,10 @@ const CompanyManagement = () => {
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
   // Admin form states
   const [showAdminForm, setShowAdminForm] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -89,6 +94,15 @@ const CompanyManagement = () => {
     password: "",
     generatePassword: true,
   });
+  const [activeFilters, setActiveFilters] = useState<{
+  companies: string[];
+  industries: string[];
+  statuses: string[];
+}>({
+  companies: [],
+  industries: [],
+  statuses: [],
+});
   const [adminCreationSuccess, setAdminCreationSuccess] = useState("");
   const [adminCreationError, setAdminCreationError] = useState("");
 
@@ -117,6 +131,50 @@ const CompanyManagement = () => {
     fetchCompanies();
   }, []);
 
+  // Reset to first page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+ const filteredCompanies = companies.filter((company) => {
+  // Search term filter
+  const matchesSearchTerm =
+    !searchTerm ||
+    company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (company.industry || "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase()) ||
+    (company.address || "").toLowerCase().includes(searchTerm.toLowerCase());
+
+  // Company name filter
+  const matchesCompany =
+    activeFilters.companies.length === 0 ||
+    activeFilters.companies.includes(company.name);
+
+  // Industry filter
+  const matchesIndustry =
+    activeFilters.industries.length === 0 ||
+    (company.industry && activeFilters.industries.includes(company.industry));
+
+  // Status filter
+  const matchesStatus =
+    activeFilters.statuses.length === 0 ||
+    (activeFilters.statuses.includes("Verified") && company.isVerified) ||
+    (activeFilters.statuses.includes("Pending") && !company.isVerified);
+
+  // Return true only if all conditions are met
+  return matchesSearchTerm && matchesCompany && matchesIndustry && matchesStatus;
+});
+
+const handleFilterChange = (filters: {
+  companies: string[];
+  industries: string[];
+  statuses: string[];
+}) => {
+  setActiveFilters(filters);
+  setCurrentPage(1); // Reset to first page when filters change
+};
+
   const fetchCompanies = async () => {
     try {
       setIsLoading(true);
@@ -136,7 +194,7 @@ const CompanyManagement = () => {
                   const adminData = await adminResponse.json();
                   return {
                     ...company,
-                    companyAdmin: adminData.data || null, // ← Changed from adminData.user to adminData.data
+                    companyAdmin: adminData.data || null,
                   };
                 }
               } catch (err) {
@@ -147,7 +205,6 @@ const CompanyManagement = () => {
           })
         );
         setCompanies(companiesWithAdmins);
-        toast.success("Companies data loaded successfully");
       } else {
         setError("Failed to fetch companies");
         toast.error("Failed to fetch companies");
@@ -172,8 +229,14 @@ const CompanyManagement = () => {
     if (type === "checkbox") {
       setFormData((prev) => ({ ...prev, [name]: checked }));
     } else if (name === "website") {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    } else {
+  let websiteValue = value.trim();
+  // Auto-prepend https:// if user enters a URL without protocol
+  if (websiteValue && !websiteValue.match(/^https?:\/\//i)) {
+    websiteValue = `https://${websiteValue}`;
+  }
+  setFormData((prev) => ({ ...prev, [name]: websiteValue }));
+}
+     else {
       setFormData((prev) => ({
         ...prev,
         [name]: capitalizeFirstLetter(value),
@@ -268,6 +331,17 @@ const CompanyManagement = () => {
       toast.error("Company name is required");
       return;
     }
+     if (!formData.logo) {
+    setError("Company logo is required");
+    toast.error("Company logo is required");
+    return;
+  }
+
+  if (!formData.website) {
+    setError("Company website is required");
+    toast.error("Company website is required");
+    return;
+  }
 
     try {
       const isEditing = !!currentCompany;
@@ -438,14 +512,24 @@ const CompanyManagement = () => {
     }
   };
 
-  const filteredCompanies = companies.filter(
-    (company) =>
-      company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (company.industry || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (company.address || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
+
+ 
+
+  // Pagination calculations
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredCompanies.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredCompanies.length / itemsPerPage);
 
   const capitalizeFirstLetter = (str: string): string => {
     if (!str) return "";
@@ -471,28 +555,6 @@ const CompanyManagement = () => {
         </Alert>
       )}
 
-      {/* <div className="space-y-2">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-            {selectedCompany?.logo ? (
-              <Image
-                src={selectedCompany.logo}
-                alt="Company Logo"
-                width={40}
-                height={40}
-                className="h-8 w-8 object-cover rounded-full"
-              />
-            ) : (
-              <Building className="h-5 w-5 text-blue-600" />
-            )}
-          </div>
-          <div>
-            <h3 className="font-medium text-sm text-gray-500">Company</h3>
-            <p className="font-medium capitalize">{selectedCompany?.name}</p>
-          </div>
-        </div>
-      </div> */}
-
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <label
@@ -512,68 +574,64 @@ const CompanyManagement = () => {
         </div>
 
         <div className="space-y-2">
-  <label
-    htmlFor="admin-email"
-    className="text-sm font-medium text-gray-700"
-  >
-    Email*
-  </label>
-  <Input
-    id="admin-email"
-    name="email"
-    type="email"
-    value={adminFormData.email}
-    onChange={handleAdminInputChange}
-    placeholder="admin@example.com"
-    required
-    pattern="^(?!.*\.\.)(?!.*\.$)(?!^\.)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-    onInvalid={(e) =>
-      (e.target as HTMLInputElement).setCustomValidity(
-        "Please enter a valid email address"
-      )
-    }
-    onInput={(e) =>
-      (e.target as HTMLInputElement).setCustomValidity("")
-    }
-  />
-</div>
+          <label
+            htmlFor="admin-email"
+            className="text-sm font-medium text-gray-700"
+          >
+            Email*
+          </label>
+          <Input
+            id="admin-email"
+            name="email"
+            type="email"
+            value={adminFormData.email}
+            onChange={handleAdminInputChange}
+            placeholder="admin@example.com"
+            required
+            pattern="^(?!.*\.\.)(?!.*\.$)(?!^\.)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+            onInvalid={(e) =>
+              (e.target as HTMLInputElement).setCustomValidity(
+                "Please enter a valid email address"
+              )
+            }
+            onInput={(e) =>
+              (e.target as HTMLInputElement).setCustomValidity("")
+            }
+          />
+        </div>
 
-<div className="space-y-2">
-  <label
-    htmlFor="admin-phone"
-    className="text-sm font-medium text-gray-700"
-  >
-    Number
-  </label>
-  <Input
-  id="admin-phone"
-  name="phone"
-  value={adminFormData.phone}
-  onChange={(e) => {
-    // Allow only digits
-    const value = e.target.value.replace(/\D/g, "");
-    // Restrict max 10 digits
-    if (value.length <= 10) {
-      handleAdminInputChange(e);
-    }
-  }}
-  placeholder="Enter  phone number"
-  required
-  maxLength={10}
-  inputMode="numeric"
-  pattern="^[0-9]{10}$"
-  onInvalid={(e) =>
-    (e.target as HTMLInputElement).setCustomValidity(
-      "Phone number must be exactly 10 digits"
-    )
-  }
-  onInput={(e) =>
-    (e.target as HTMLInputElement).setCustomValidity("")
-  }
-/>
-
-</div>
-
+        <div className="space-y-2">
+          <label
+            htmlFor="admin-phone"
+            className="text-sm font-medium text-gray-700"
+          >
+            Number
+          </label>
+          <Input
+            id="admin-phone"
+            name="phone"
+            value={adminFormData.phone}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, "");
+              if (value.length <= 10) {
+                handleAdminInputChange(e);
+              }
+            }}
+            placeholder="Enter phone number"
+            required
+            maxLength={10}
+            inputMode="numeric"
+            pattern="^[0-9]{10}$"
+            onInvalid={(e) =>
+              (e.target as HTMLInputElement).setCustomValidity(
+                "Phone number must be exactly 10 digits"
+              )
+            }
+            onInput={(e) =>
+              (e.target as HTMLInputElement).setCustomValidity("")
+            }
+          />
+        </div>
       </div>
 
       <div className="space-y-2 mt-4">
@@ -661,10 +719,18 @@ const CompanyManagement = () => {
               className="pl-9 w-full"
             />
           </div>
+          
+    
+    
           <Button onClick={() => openSidebar()} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Company
           </Button>
+          <CompanyFilter
+      companies={companies}
+      onFilterChange={handleFilterChange}
+      activeFilters={activeFilters}
+    />
         </div>
       </div>
 
@@ -718,10 +784,10 @@ const CompanyManagement = () => {
                   </td>
                 </tr>
               ) : (
-                filteredCompanies.map((company, index) => (
+                currentItems.map((company, index) => (
                   <tr key={company.id} className="hover:bg-gray-50">
                     <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500">
-                      {index + 1}
+                      {indexOfFirstItem + index + 1}
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap">
                       <div className="flex items-center">
@@ -844,6 +910,18 @@ const CompanyManagement = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {filteredCompanies.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredCompanies.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            showPageInfo={true}
+          />
+        )}
       </div>
 
       {/* Sidebar */}
@@ -892,7 +970,7 @@ const CompanyManagement = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Company Logo
+                      Company Logo<span className="text-red-500">*</span>
                     </label>
                     <div className="mb-2">
                       {formData.logo || logoPreview ? (
@@ -963,19 +1041,25 @@ const CompanyManagement = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Website
+                      Website<span className="text-red-500">*</span>
                     </label>
                     <Input
-                      name="website"
-                      value={formData.website}
-                      onChange={handleInputChange}
-                      placeholder="https://company.com"
-                    />
+  name="website"
+  value={formData.website}
+  onChange={handleInputChange}
+  onBlur={(e) => {
+    const value = e.target.value.trim();
+    if (value && !value.match(/^https?:\/\//i)) {
+      setFormData((prev) => ({ ...prev, website: `https://${value}` }));
+    }
+  }}
+  placeholder="https://company.com"
+/>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      About Company
+                      About
                     </label>
                     <Textarea
                       name="about"

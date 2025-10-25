@@ -6,7 +6,7 @@ import JobListingForm from "@/components/admin/jobListing";
 import JobListingDashboard from "@/components/admin/ListedJobDashobard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { BookOpen, LogOut, Menu, Settings, Users, X } from "lucide-react";
+import { BookOpen, LogOut, Menu, Users, X } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -89,10 +89,10 @@ export default function Recruiter() {
             </PopoverTrigger>
             <PopoverContent className="w-56" align="end">
               <div className="space-y-1">
-                <button className="w-full flex items-center gap-2 rounded-lg p-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                {/* <button className="w-full flex items-center gap-2 rounded-lg p-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
                   <Settings className="h-4 w-4" />
                   Profile Settings
-                </button>
+                </button> */}
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-2 rounded-lg p-2 text-sm text-red-600 hover:bg-red-50 transition-colors"

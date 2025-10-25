@@ -28,6 +28,7 @@ const initialFormState: FormData = {
   password: "",
 };
 
+
 export default function RecruiterManagement() {
   const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -38,6 +39,10 @@ export default function RecruiterManagement() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [companyId, setCompanyId] = useState("");
+  const [validationErrors, setValidationErrors] = useState({
+  mobile: "",
+  email: "",
+});
   
   const { data: session } = useSession();
 
@@ -77,10 +82,40 @@ export default function RecruiterManagement() {
     initializeData();
   }, [session]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const { name, value } = e.target;
+  
+  // Handle mobile number - allow only digits and limit to 10
+  if (name === "mobile") {
+    const digitsOnly = value.replace(/\D/g, "");
+    if (digitsOnly.length <= 10) {
+      setFormData(prev => ({ ...prev, [name]: digitsOnly }));
+      
+      // Validate mobile number
+      if (digitsOnly.length > 0 && digitsOnly.length !== 10) {
+        setValidationErrors(prev => ({ ...prev, mobile: "Mobile number must be exactly 10 digits" }));
+      } else {
+        setValidationErrors(prev => ({ ...prev, mobile: "" }));
+      }
+    }
+    return;
+  }
+  
+  // Handle email validation
+  if (name === "email") {
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
+    
+    const emailRegex = /^(?!.*\.\.)(?!.*\.$)(?!^\.)[\w.%+-]+@[\w.-]+\.[a-zA-Z]{2,}$/;
+    if (value && !emailRegex.test(value)) {
+      setValidationErrors(prev => ({ ...prev, email: "Please enter a valid email address" }));
+    } else {
+      setValidationErrors(prev => ({ ...prev, email: "" }));
+    }
+    return;
+  }
+  
+  setFormData(prev => ({ ...prev, [name]: value }));
+};
 
   // const handleEdit = (recruiter: Recruiter) => {
   //   setEditingRecruiter(recruiter);
@@ -99,12 +134,24 @@ export default function RecruiterManagement() {
     setShowCreateForm(false);
     setEditingRecruiter(null);
     setFormData(initialFormState);
+     setValidationErrors({ mobile: "", email: "" }); 
     setError("");
     setSuccess("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+     if (validationErrors.mobile || validationErrors.email) {
+    setError("Please fix the validation errors before submitting");
+    return;
+  }
+  
+  // Check mobile number length
+  if (formData.mobile.length !== 10) {
+    setError("Mobile number must be exactly 10 digits");
+    return;
+  }
     setSubmitting(true);
     setError("");
     setSuccess("");
@@ -265,33 +312,43 @@ export default function RecruiterManagement() {
               </div>
               
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Email Address *</label>
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Enter email address"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+  <label className="block text-sm font-medium text-gray-700">Email Address *</label>
+  <input
+    type="email"
+    name="email"
+    placeholder="Enter email address"
+    value={formData.email}
+    onChange={handleInputChange}
+    required
+    pattern="^(?!.*\.\.)(?!.*\.$)(?!^\.)[\w.%+-]+@[\w.-]+\.[a-zA-Z]{2,}$"
+    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  />
+  {validationErrors.email && (
+    <p className="text-xs text-red-600 mt-1">{validationErrors.email}</p>
+  )}
+</div>
             </div>
 
             {/* Row 2: Mobile and Password */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Mobile Number *</label>
-                <input
-                  type="tel"
-                  name="mobile"
-                  placeholder="Enter mobile number"
-                  value={formData.mobile}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+  <label className="block text-sm font-medium text-gray-700">Mobile Number *</label>
+  <input
+    type="tel"
+    name="mobile"
+    placeholder="Enter 10-digit mobile number"
+    value={formData.mobile}
+    onChange={handleInputChange}
+    required
+    maxLength={10}
+    pattern="[0-9]{10}"
+    inputMode="numeric"
+    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  />
+  {validationErrors.mobile && (
+    <p className="text-xs text-red-600 mt-1">{validationErrors.mobile}</p>
+  )}
+</div>
               
               <div className="space-y-1">
                 <label className="block text-sm font-medium text-gray-700">
