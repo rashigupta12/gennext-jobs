@@ -377,32 +377,30 @@ const CompanyProfile = () => {
 
           {/* Status and Admin Info */}
           <div className="border-t pt-4 space-y-3">
-            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
-              <div>
-                <strong className="text-gray-700">Verification Status: </strong>
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                  company.isVerified 
-                    ? "bg-green-100 text-green-800" 
-                    : "bg-yellow-100 text-yellow-800"
-                }`}>
-                  {company.isVerified ? "✓ Verified" : "⏳ Pending Verification"}
-                </span>
-              </div>
-            </div>
+  {company.isVerified && (
+    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+      <div>
+        <strong className="text-gray-700">Verification Status: </strong>
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          ✓ Verified
+        </span>
+      </div>
+    </div>
+  )}
 
-            {company.companyAdmin && (
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <strong className="text-gray-700">Company Admin:</strong>
-                <div className="mt-1 text-sm text-gray-600">
-                  <p>{company.companyAdmin.name}</p>
-                  <p className="text-blue-600">{company.companyAdmin.email}</p>
-                  {company.companyAdmin.phone && (
-                    <p>{company.companyAdmin.phone}</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+  {company.companyAdmin && (
+    <div className="bg-gray-50 p-3 rounded-lg">
+      <strong className="text-gray-700">Company Admin:</strong>
+      <div className="mt-1 text-sm text-gray-600">
+        <p>{company.companyAdmin.name}</p>
+        <p className="text-blue-600">{company.companyAdmin.email}</p>
+        {company.companyAdmin.phone && (
+          <p>{company.companyAdmin.phone}</p>
+        )}
+      </div>
+    </div>
+  )}
+</div>
         </CardContent>
       </Card>
     </div>

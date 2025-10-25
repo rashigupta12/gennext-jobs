@@ -328,7 +328,11 @@ const generateSlug = async () => {
       return;
     }
 
-    // Call API to generate unique slug
+    // Generate date string (YYYY-MM-DD format)
+    const today = new Date();
+    const dateString = today.toISOString().split('T')[0]; // e.g., "2025-10-25"
+
+    // Call API to generate unique slug with date
     const response = await fetch("/api/generate-slug", {
       method: "POST",
       headers: {
@@ -337,6 +341,7 @@ const generateSlug = async () => {
       body: JSON.stringify({
         title,
         companyName: company.name,
+        date: dateString, // Add date to the request
       }),
     });
 
@@ -349,17 +354,24 @@ const generateSlug = async () => {
     
     toast({
       title: "Success",
-      description: "Unique slug generated with company name!",
+      description: "Unique slug generated with date!",
     });
   } catch (error) {
     console.error("Error generating slug:", error);
-    // Fallback to basic slug generation
-    const basicSlug = `${title.toLowerCase().replace(/\s+/g, "-")}-${companies.find(c => c.id === companyId)?.name.toLowerCase().replace(/\s+/g, "-")}`;
-    form.setValue("slug", basicSlug);
+    // Fallback to basic slug generation with date
+    const today = new Date();
+    const dateString = today.toISOString().split('T')[0];
+    const basicSlug = `${title.toLowerCase().replace(/\s+/g, "-")}-${companies.find(c => c.id === companyId)?.name.toLowerCase().replace(/\s+/g, "-")}-${dateString}`;
+    const cleanSlug = basicSlug
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    
+    form.setValue("slug", cleanSlug);
     
     toast({
       title: "Note",
-      description: "Used basic slug generation. May not be unique.",
+      description: "Used basic slug generation with date. May not be unique.",
       variant: "default",
     });
   }
@@ -516,18 +528,21 @@ if (parsedData.title) {
   const companyId = form.getValues("companyId");
   const company = companies.find(c => c.id === companyId);
   
+  // Generate date string
+  const today = new Date();
+  const dateString = today.toISOString().split('T')[0];
+  
   if (company) {
-    const baseSlug = `${parsedData.title.toLowerCase().replace(/\s+/g, "-")}-${company.name.toLowerCase().replace(/\s+/g, "-")}`;
+    const baseSlug = `${parsedData.title.toLowerCase().replace(/\s+/g, "-")}-${company.name.toLowerCase().replace(/\s+/g, "-")}-${dateString}`;
     const cleanSlug = baseSlug
       .replace(/[^a-z0-9-]/g, '')
       .replace(/-+/g, '-')
       .replace(/^-+|-+$/g, '');
     
-    // NO TIMESTAMP - just use the clean slug
     form.setValue("slug", cleanSlug);
   } else {
     // Fallback if no company selected
-    const slug = parsedData.title.toLowerCase().replace(/\s+/g, "-");
+    const slug = `${parsedData.title.toLowerCase().replace(/\s+/g, "-")}-${dateString}`;
     form.setValue("slug", slug);
     
     toast({
