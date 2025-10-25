@@ -75,10 +75,10 @@ export default function Home() {
 
       {/* Hero Section - Updated color theme */}
       <header className="mt-10 flex flex-col items-center justify-between bg-gradient-to-r from-blue-50 to-sky-50 px-4 py-10 md:px-20 md:py-24 transition-all duration-300 md:mt-10 md:flex-row">
-        <div className="hidden md:block max-w-lg text-center md:text-left mb-10 md:mb-0">
+        <div className="hidden md:block max-w-2xl text-center md:text-left mb-10 md:mb-0">
 
           <h1 className="text-4xl font-bold text-gray-900 transition-all duration-300 md:text-5xl lg:text-6xl">
-            Find The Job That <span className="text-gennext-DEFAULT">Fits</span> Your
+            Find The Job...That <span className="text-gennext-DEFAULT">Fits</span> Your
             Life
           </h1>
           <p className="mt-4 text-lg text-gray-600 leading-relaxed md:mt-6">

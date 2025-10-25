@@ -58,7 +58,7 @@ const FilterContent = ({
   };
   
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-6 p-4 pr-2">
       <div>
         <h2 className="text-lg font-semibold mb-4">Filter Applications</h2>
 
