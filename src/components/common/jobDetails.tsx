@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 interface Company {
   id: string;
@@ -66,17 +67,29 @@ interface JobInfoProps {
 
 const JobInfo = ({ jobDetails, onApplyClick }: JobInfoProps) => {
   const { data: session } = useSession(); // Get session data from NextAuth
+  const router = useRouter();
 
-  const handleApplyClick = () => {
-    if (!session || session.user.role !== "USER") {
-      alert("You can't apply for this job.");
+ const handleApplyClick = () => {
+    // Check if user is not logged in
+    if (status === "unauthenticated" || !session) {
+      // Redirect to login page with a callback URL to return to this job after login
+      router.push(`/auth/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
 
+    // Optional: Check if user has the correct role
+    if (session.user.role !== "USER") {
+      alert("Only job seekers can apply for jobs.");
+      return;
+    }
+
+    // If user is logged in, proceed to application page
     if (jobDetails) {
-      window.location.href = `/jobs/apply?id=${
-        jobDetails.id
-      }&title=${encodeURIComponent(jobDetails.title)}`;
+      if (onApplyClick) {
+        onApplyClick(jobDetails.id, jobDetails.title);
+      } else {
+        router.push(`/jobs/apply?id=${jobDetails.id}&title=${encodeURIComponent(jobDetails.title)}`);
+      }
     }
   };
 

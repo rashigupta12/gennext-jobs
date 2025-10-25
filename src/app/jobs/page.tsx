@@ -190,84 +190,103 @@ const AllJobListings = () => {
     }
   }, [searchParams]);
 
-  // Fetch all data
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch all jobs
-        const jobs = (await fetchAllJobs()) as JobListing[];
-        setJobListings(jobs);
-        console.log("Jobs fetched:", jobs);
+// Update your useEffect in the AllJobListings component:
+useEffect(() => {
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Fetch all jobs
+      const jobs = (await fetchAllJobs()) as JobListing[];
+      console.log("✅ Jobs fetched in component:", jobs.length);
+      console.log("📄 Sample job:", jobs[0]);
+      setJobListings(jobs);
 
-        // Extract IDs for secondary data
-        const companyIds: string[] = [
-          ...new Set(jobs.map((job: JobListing) => job.companyId as string)),
-        ];
-        const categoryIds: string[] = [
-          ...new Set(
-            jobs
-              .map((job: JobListing) => job.categoryId as string)
-              .filter((id: string): id is string => typeof id === "string")
-          ),
-        ];
-        const subcategoryIds = jobs
-          .map((job: JobListing) => job.subcategoryId)
-          .filter(
-            (id: string | undefined | null) => id !== undefined && id !== null
-          );
-
-        // Fetch secondary data in parallel
-        const [
-          categoriesData,
-          companiesData,
-          subcategoriesData,
-          locationsData,
-        ] = await Promise.all([
-          fetchCategories(categoryIds),
-          fetchCompanies(companyIds),
-          fetchSubcategories(subcategoryIds),
-          fetchAllJobLocations(),
-        ]);
-
-        setCategories(categoriesData);
-        setCompanies(companiesData);
-        setSubcategories(subcategoriesData);
-        setLocationOptions(locationsData);
-
-        // Combine all data using the imported helper function
-        const combined = combineJobData(
-          jobs,
-          companiesData,
-          categoriesData,
-          subcategoriesData
+      // Extract IDs for secondary data
+      const companyIds: string[] = [
+        ...new Set(jobs.map((job: JobListing) => job.companyId as string)),
+      ];
+      const categoryIds: string[] = [
+        ...new Set(
+          jobs
+            .map((job: JobListing) => job.categoryId as string)
+            .filter((id: string): id is string => typeof id === "string")
+        ),
+      ];
+      const subcategoryIds = jobs
+        .map((job: JobListing) => job.subcategoryId)
+        .filter(
+          (id: string | undefined | null) => id !== undefined && id !== null
         );
 
-        setCombinedData(combined);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        setError("Failed to load job listings. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
+      console.log("🏢 Company IDs to fetch:", companyIds.length, companyIds);
+      console.log("📂 Category IDs to fetch:", categoryIds.length, categoryIds);
+      console.log("📁 Subcategory IDs to fetch:", subcategoryIds.length);
 
-    fetchData();
-  }, []);
+      // Fetch secondary data in parallel
+      const [
+        categoriesData,
+        companiesData,
+        subcategoriesData,
+        locationsData,
+      ] = await Promise.all([
+        fetchCategories(categoryIds),
+        fetchCompanies(companyIds),
+        fetchSubcategories(subcategoryIds),
+        fetchAllJobLocations(),
+      ]);
 
+      console.log("✅ Categories fetched:", categoriesData.length);
+      console.log("✅ Companies fetched:", companiesData.length);
+      console.log("✅ Subcategories fetched:", subcategoriesData.length);
+      console.log("✅ Locations fetched:", locationsData.length);
+
+      setCategories(categoriesData);
+      setCompanies(companiesData);
+      setSubcategories(subcategoriesData);
+      setLocationOptions(locationsData);
+
+      // Combine all data using the imported helper function
+      const combined = combineJobData(
+        jobs,
+        companiesData,
+        categoriesData,
+        subcategoriesData
+      );
+
+      console.log("🔗 Combined data length:", combined.length);
+      console.log("📋 Sample combined item:", combined[0]);
+      console.log("🔗 All combined data:", combined);
+
+      setCombinedData(combined);
+      setError(null);
+    } catch (err) {
+      console.error("❌ Error fetching data:", err);
+      setError("Failed to load job listings. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, []);
   // Apply filters and pagination using the imported filterJobs function
-  const filteredData = useMemo(
-    () => filterJobs(combinedData, filters),
-    [combinedData, filters]
-  );
+// Apply filters and pagination using the imported filterJobs function
+const filteredData = useMemo(() => {
+  const result = filterJobs(combinedData, filters);
+  console.log("🔍 Filtered data length:", result.length, "from", combinedData.length);
+  console.log("🔍 Active filters:", filters);
+  return result;
+}, [combinedData, filters]);
 
-  const paginatedResults = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredData.slice(startIndex, endIndex);
-  }, [filteredData, currentPage, itemsPerPage]);
-
+const paginatedResults = useMemo(() => {
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const result = filteredData.slice(startIndex, endIndex);
+  console.log("📄 Paginated results:", result.length, "for page", currentPage);
+  console.log("📄 Start index:", startIndex, "End index:", endIndex);
+  console.log("📄 Items per page:", itemsPerPage);
+  return result;
+}, [filteredData, currentPage, itemsPerPage]);
   useEffect(() => {
     const totalItems = filteredData.length;
     const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage);

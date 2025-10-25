@@ -46,8 +46,13 @@ export async function GET(request: Request) {
     const userId = searchParams.get("userId");
     const jobIdsParam = searchParams.get("jobIds");
     const jobIds = jobIdsParam ? jobIdsParam.split(",") : [];
+    
+    // Get pagination parameters with better defaults
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const limit = Math.max(1, parseInt(searchParams.get("limit") || "10", 10));
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam === "all" 
+      ? 10000  // Very high number to get all records
+      : Math.max(1, parseInt(limitParam || "10", 10));
     const skip = (page - 1) * limit;
 
     // Build conditions array
@@ -84,7 +89,11 @@ export async function GET(request: Request) {
       conditions.push(inArray(JobListingsTable.id, jobIds));
     }
 
-
+    // Only add isActive filter if not specifically filtered by other criteria
+    // This ensures we only show active jobs by default
+    // if (!userId && jobIds.length === 0) {
+    //   conditions.push(eq(JobListingsTable.isActive, true));
+    // }
     
     // Fetch job listings with conditions
     const jobListings = await db
@@ -112,9 +121,9 @@ export async function GET(request: Request) {
         jobListings,
         pagination: {
           page,
-          limit,
+          limit: limitParam === "all" ? totalItems : limit,
           totalItems,
-          totalPages: Math.ceil(totalItems / limit),
+          totalPages: limitParam === "all" ? 1 : Math.ceil(totalItems / limit),
         },
       },
       { status: 200 }

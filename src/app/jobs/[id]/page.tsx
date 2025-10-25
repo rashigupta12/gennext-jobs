@@ -57,7 +57,6 @@ const JobDetailsPage = () => {
   const params = useParams();
 
   const jobId = params.id as string;
-  console.log("Job ID:", jobId);
   useEffect(() => {
     const fetchJobDetails = async () => {
       try {

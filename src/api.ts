@@ -3,10 +3,13 @@ import { JobApplication, JobListing, Company, Category, Subcategory, Resume } fr
 
 export const fetchAllJobs = async () => {
   try {
-    const response = await fetch("/api/job-listing");
+    const response = await fetch("/api/job-listing?limit=all");
     if (!response.ok) throw new Error("Failed to fetch all jobs");
     const data = await response.json();
-    return data.jobListings || []; // Ensure a fallback to an emptya array
+    console.log("API Response:", data); // See full response
+    console.log("Fetched jobs:", data.jobListings?.length || 0, "jobs");
+    console.log("Pagination info:", data.pagination); // See pagination details
+    return data.jobListings || [];
   } catch (error) {
     console.error("Error fetching all jobs:", error);
     throw error;

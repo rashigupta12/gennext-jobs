@@ -13,12 +13,23 @@ import { NextResponse } from "next/server";
 
 const { auth } = NextAuth(authConfig);
 
+// Helper function to check if a route is public (supports both exact matches and patterns)
+const isPublicRoute = (pathname: string): boolean => {
+  return publicRoutes.some((route) => {
+    if (typeof route === "string") {
+      return route === pathname;
+    }
+    // If it's a RegExp, test against it
+    return route.test(pathname);
+  });
+};
+
 export default auth(async (req) => {
   const { auth, nextUrl } = req;
   const isLoggedIn = !!auth;
 
   const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
-  const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
+  const isPublicRouteMatch = isPublicRoute(nextUrl.pathname);
   const isPublicApi = publicApis.some((api) =>
     nextUrl.pathname.startsWith(api)
   );
@@ -35,7 +46,7 @@ export default auth(async (req) => {
     return undefined;
   }
 
-  if (!isLoggedIn && !isPublicRoute && !isPublicApi) {
+  if (!isLoggedIn && !isPublicRouteMatch && !isPublicApi) {
     return Response.redirect(new URL("/auth/login", nextUrl));
   }
 
