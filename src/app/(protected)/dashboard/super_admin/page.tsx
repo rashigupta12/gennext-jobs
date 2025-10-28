@@ -72,7 +72,6 @@ export default function AdminDashboard() {
   };
 
   const {data: session } = useSession();
-  console.log(session)
 
   return (
     <div className="min-h-screen bg-gray-50">

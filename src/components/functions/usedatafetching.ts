@@ -111,7 +111,7 @@ export function useJobFilters(jobListings: Job[]) {
     } else if (windowWidth < 1024) {
       return 6; // Tablet
     } else {
-      return 8; // Desktop
+      return 6; // Desktop
     }
   }, [windowWidth]);
 

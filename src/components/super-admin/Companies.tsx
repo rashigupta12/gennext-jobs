@@ -793,7 +793,7 @@ const handleFilterChange = (filters: {
                       <div className="flex items-center">
                         {company.logo ? (
                           <Image
-                            className="h-8 w-8 rounded-full mr-3 object-cover"
+                            className="h-8 w-8 rounded-full mr-3 object-contain"
                             src={company.logo}
                             alt={company.name}
                             width={32}
@@ -978,7 +978,7 @@ const handleFilterChange = (filters: {
                           <Image
                             src={formData.logo || logoPreview}
                             alt="Company Logo"
-                            className="h-24 w-24 object-cover rounded-md mb-2"
+                            className="h-24 w-24 object-contain rounded-md mb-2"
                             width={96}
                             height={96}
                           />

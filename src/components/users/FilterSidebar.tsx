@@ -1,18 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApplicationStatus, Filters } from "@/types";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
 import { useState } from "react";
 import SalaryFilter from "./SalaryFilter";
 
@@ -42,7 +34,7 @@ const FilterContent = ({
   // updateStatusFilter,
   updateLocationFilter,
   updateEmploymentTypeFilter,
-  updateDateFilter,
+  // updateDateFilter,
   updateSalaryRangeFilter, // Add this
   // onFilterChange,
   onResetFilters,
@@ -58,7 +50,7 @@ const FilterContent = ({
   };
   
   return (
-    <div className="space-y-6 p-4 pr-2">
+    <div className="space-y-6  pl-2">
       <div>
         <h2 className="text-lg font-semibold mb-4">Filter Applications</h2>
 
@@ -160,6 +152,8 @@ const FilterContent = ({
             </p>
           )}
         </div>
+        <Separator className="my-6" />
+
 
         {/* Employment Type Filter */}
         <div className="mb-6">
@@ -198,10 +192,9 @@ const FilterContent = ({
           )}
         </div>
 
-        <Separator className="my-6" />
 
         {/* Date Filters */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <h3 className="text-sm font-medium mb-3">Date Range</h3>
           <div className="space-y-3">
             <div>
@@ -267,7 +260,7 @@ const FilterContent = ({
               </Popover>
             </div>
           </div>
-        </div>
+        </div> */}
 
         <Separator className="my-6" />
 

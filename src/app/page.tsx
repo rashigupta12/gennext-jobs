@@ -12,15 +12,17 @@ import globe from "../../public/images/globe.png";
 import FeaturedJobs from "@/components/common/featuredJobs";
 import Footer from "@/components/common/Footer";
 import Navbar from "@/components/common/Navbar";
-import { useDataFetching, useJobFilters } from "@/components/functions/usedatafetching";
+import {
+  useDataFetching,
+  useJobFilters,
+} from "@/components/functions/usedatafetching";
 import JobSearchSection from "@/components/homepage/serachbar";
 import Link from "next/link";
 import { Details } from "@/lib/data";
 
 // Custom hook for job filtering and pagination with improved performance
 export default function Home() {
-  const {  jobListings,  loading, error, retryCount } =
-    useDataFetching();
+  const { jobListings, loading, error, retryCount } = useDataFetching();
   const {
     uniqueProfiles,
     paginatedJobs,
@@ -76,28 +78,27 @@ export default function Home() {
       {/* Hero Section - Updated color theme */}
       <header className="mt-10 flex flex-col items-center justify-between bg-gradient-to-r from-blue-50 to-sky-50 px-4 py-10 md:px-20 md:py-24 transition-all duration-300 md:mt-10 md:flex-row">
         <div className="hidden md:block max-w-2xl text-center md:text-left mb-10 md:mb-0">
-
           <h1 className="text-4xl font-bold text-gray-900 transition-all duration-300 md:text-5xl lg:text-6xl">
-            Find The Job...That <span className="text-gennext-DEFAULT">Fits</span> Your
-            Life
+            Find The Job...
+            <br />
+            That <span className="text-gennext-DEFAULT">Fits</span> Your Life
           </h1>
           <p className="mt-4 text-lg text-gray-600 leading-relaxed md:mt-6">
             Resume-Library is a true performance-based job board. Enjoy custom
             hiring products and access to up to 10,000 new resume registrations
             daily, with no subscriptions or user licenses.
           </p>
-        
+
           <div className="mt-8 flex flex-col sm:flex-row gap-4">
             <Link href="/auth/register">
-            <button className="px-6 py-3 bg-gennext-dark text-white rounded-lg font-medium hover:bg-gennext-dark transition-colors shadow-md">
-              Get Started
-            </button>
+              <button className="px-6 py-3 bg-gennext-dark text-white rounded-lg font-medium hover:bg-gennext-dark transition-colors shadow-md">
+                Get Started
+              </button>
             </Link>
             <button className="px-6 py-3 bg-white text-gennext-DEFAULT border border-gennext-light rounded-lg font-medium hover:bg-blue-50 transition-colors">
               Learn More
             </button>
           </div>
-          
         </div>
         <div className="relative">
           <Image
@@ -109,27 +110,28 @@ export default function Home() {
             priority
           />
           <div className="absolute left-0 md:left-8 top-32 md:top-40 flex animate-bounce items-center space-x-2 rounded-full bg-white p-3 shadow-lg">
-      <Image
-        src={clientImg}
-        alt="User"
-        width={40}
-        height={40}
-        className="rounded-full"
-      />
+            <Image
+              src={clientImg}
+              alt="User"
+              width={40}
+              height={40}
+              className="rounded-full"
+            />
 
-      {/* Large screen text */}
-      <span className="hidden md:inline font-semibold text-gennext-DEFAULT text-sm">
-        480+ Happy Candidates
-      </span>
+            {/* Large screen text */}
+            <span className="hidden md:inline font-semibold text-gennext-DEFAULT text-sm">
+              480+ Happy Candidates
+            </span>
 
-      {/* Small screen text with link */}
-      <Link
-        href="/auth/register"
-        className="md:hidden font-semibold  text-sm "
-      >
-        Job seeker? <span className="text-gennext underline"> Click here</span>
-      </Link>
-    </div>
+            {/* Small screen text with link */}
+            <Link
+              href="/auth/register"
+              className="md:hidden font-semibold  text-sm "
+            >
+              Job seeker?{" "}
+              <span className="text-gennext underline"> Click here</span>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -139,7 +141,8 @@ export default function Home() {
       <section className="py-12 md:py-16 max-w-7xl mx-auto px-4">
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Featured <span className="text-gennext-DEFAULT">Job Opportunities</span>
+            Featured{" "}
+            <span className="text-gennext-DEFAULT">Job Opportunities</span>
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">
             Handpicked job listings matched to your skills, experience, and
@@ -180,7 +183,7 @@ export default function Home() {
 
         {/* Job Listings Grid - Updated color theme */}
         <div className="container mx-auto mt-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
             {paginatedJobs.length > 0 ? (
               paginatedJobs.map((job) => (
                 <div
@@ -194,7 +197,9 @@ export default function Home() {
               <div className="col-span-full text-center py-12">
                 <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100">
                   <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-medium text-gray-700 mb-2">No jobs found</h3>
+                  <h3 className="text-xl font-medium text-gray-700 mb-2">
+                    No jobs found
+                  </h3>
                   <p className="text-gray-500">
                     No jobs match your current filter. Try another category.
                   </p>
@@ -267,7 +272,9 @@ export default function Home() {
               <p className="text-sm text-gray-500">Countries</p>
             </div>
             <div className="absolute bottom-5 md:bottom-10 left-5 md:left-10 rounded-xl bg-white p-3 shadow-lg animate-fadeIn animation-delay-300 border border-gray-100">
-              <p className="text-xl font-bold text-gennext-DEFAULT">1 million+</p>
+              <p className="text-xl font-bold text-gennext-DEFAULT">
+                1 million+
+              </p>
               <p className="text-sm text-gray-500">Candidates</p>
             </div>
             <div className="absolute bottom-28 md:bottom-40 left-28 md:left-40 rounded-xl bg-white p-3 shadow-lg animate-fadeIn animation-delay-600 border border-gray-100">
@@ -279,8 +286,9 @@ export default function Home() {
           {/* Right Section with Text and Features */}
           <div className="w-full md:w-1/2 md:pl-10">
             <h2 className="mb-6 text-3xl font-bold text-gray-900">
-              Why Choose <span className="text-gennext-DEFAULT">{Details.name}</span>{" "}
-              for Your Next Opportunity?
+              Why Choose{" "}
+              <span className="text-gennext-DEFAULT">{Details.name}</span> for
+              Your Next Opportunity?
             </h2>
             <ul className="space-y-5 text-gray-600">
               <li className="flex items-start">
@@ -313,7 +321,8 @@ export default function Home() {
                   <strong className="text-gray-800">
                     Remote Work for Women
                   </strong>{" "}
-                  – Special opportunities for women looking for flexible remote finance jobs.
+                  – Special opportunities for women looking for flexible remote
+                  finance jobs.
                 </span>
               </li>
               <li className="flex items-start">
